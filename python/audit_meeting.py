@@ -42,13 +42,30 @@ def _to_wsl_path(p: Path) -> str:
     return s.replace("\\", "/")
 
 
-def _compile_native() -> None:
-    print("Compiling COBOL entropy engine...")
-    result = subprocess.run(
-        ["cobc", "-x", "-o", str(COBOL_BIN), str(COBOL_SRC)],
-        capture_output=True,
-        text=True,
-    )
+def _get_wsl_prefix() -> list[str]:
+    """Return a wsl command prefix using the first distro that has cobc."""
+    for distro in ("Ubuntu", "Debian"):
+        r = subprocess.run(
+            ["wsl", "-d", distro, "--", "which", "cobc"],
+            capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            return ["wsl", "-d", distro, "--"]
+    return ["wsl", "--"]
+
+
+def _compile(wsl_prefix: list[str]) -> None:
+    """Compile entropy_engine.cob. Uses WSL if wsl_prefix is non-empty."""
+    if wsl_prefix:
+        print("Compiling COBOL entropy engine via WSL...")
+        cmd = wsl_prefix + [
+            "cobc", "-x", "-o", _to_wsl_path(COBOL_BIN), _to_wsl_path(COBOL_SRC),
+        ]
+    else:
+        print("Compiling COBOL entropy engine...")
+        cmd = ["cobc", "-x", "-o", str(COBOL_BIN), str(COBOL_SRC)]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print("COBOL compilation failed:", file=sys.stderr)
         print(result.stderr, file=sys.stderr)
@@ -56,54 +73,34 @@ def _compile_native() -> None:
     print("Compilation successful.\n")
 
 
-def _wsl_distro() -> str:
-    """Return the name of the first WSL distro that has cobc."""
-    for distro in ("Ubuntu", "Debian"):
-        r = subprocess.run(
-            ["wsl", "-d", distro, "--", "which", "cobc"],
-            capture_output=True, text=True,
-        )
-        if r.returncode == 0:
-            return distro
-    # Fall back to whatever the default distro is
-    return ""
+def ensure_cobol_binary() -> tuple[Path, list[str]]:
+    """Return (bin_path, run_prefix). Compiles if the binary is absent.
 
-
-def _compile_wsl() -> None:
-    print("Compiling COBOL entropy engine via WSL...")
-    distro = _wsl_distro()
-    wsl_cmd = ["wsl", "-d", distro, "--"] if distro else ["wsl", "--"]
-    result = subprocess.run(
-        wsl_cmd + ["cobc", "-x", "-o", _to_wsl_path(COBOL_BIN), _to_wsl_path(COBOL_SRC)],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        print("COBOL compilation failed (WSL):", file=sys.stderr)
-        print(result.stderr, file=sys.stderr)
-        sys.exit(1)
-    print("Compilation successful.\n")
-
-
-def ensure_cobol_binary() -> tuple[Path, bool]:
-    """Return (bin_path, use_wsl). Compiles the binary if absent."""
+    run_prefix is [] for native execution or ["wsl", "-d", distro, "--"]
+    when the binary is a Linux ELF that must be invoked via WSL.
+    """
     if COBOL_BIN_WIN.exists():
-        return COBOL_BIN_WIN, False
+        return COBOL_BIN_WIN, []
+
     if COBOL_BIN.exists():
-        return COBOL_BIN, False
+        # On Windows the existing binary is a Linux ELF compiled by WSL.
+        if sys.platform == "win32":
+            return COBOL_BIN, _get_wsl_prefix()
+        return COBOL_BIN, []
 
     if shutil.which("cobc"):
-        _compile_native()
-        return (COBOL_BIN_WIN if COBOL_BIN_WIN.exists() else COBOL_BIN), False
+        _compile([])
+        return (COBOL_BIN_WIN if COBOL_BIN_WIN.exists() else COBOL_BIN), []
 
     if shutil.which("wsl"):
-        _compile_wsl()
-        return COBOL_BIN, True
+        prefix = _get_wsl_prefix()
+        _compile(prefix)
+        return COBOL_BIN, prefix
 
     print(
         "ERROR: GnuCOBOL (cobc) not found.\n"
-        "  macOS : brew install gnu-cobol\n"
-        "  Linux : sudo apt install gnucobol\n"
+        "  macOS  : brew install gnu-cobol\n"
+        "  Linux  : sudo apt install gnucobol\n"
         "  Windows: install WSL then: sudo apt install gnucobol",
         file=sys.stderr,
     )
@@ -115,23 +112,18 @@ def load_meeting(path: str) -> dict:
         return json.load(f)
 
 
-def score_meeting(meeting: dict, bin_path: Path, use_wsl: bool = False) -> tuple[int, int]:
-    duration = str(meeting.get("duration_minutes", 60))
-    attendees = str(len(meeting.get("attendees", [])))
-    has_agenda = "1" if meeting.get("has_agenda", False) else "0"
-    has_actions = "1" if meeting.get("has_action_items", False) else "0"
-    could_be_email = "1" if meeting.get("could_be_email", False) else "0"
-    recurrence = str(RECURRENCE_LEVELS.get(meeting.get("recurrence", "none"), 0))
+def score_meeting(meeting: dict, bin_path: Path, wsl_prefix: list[str]) -> tuple[int, int]:
+    """Pipe meeting parameters to the COBOL binary and parse the two-line output."""
+    stdin_data = "\n".join([
+        str(meeting.get("duration_minutes", 60)),
+        str(len(meeting.get("attendees", []))),
+        "1" if meeting.get("has_agenda", False) else "0",
+        "1" if meeting.get("has_action_items", False) else "0",
+        "1" if meeting.get("could_be_email", False) else "0",
+        str(RECURRENCE_LEVELS.get(meeting.get("recurrence", "none"), 0)),
+    ]) + "\n"
 
-    stdin_data = "\n".join([duration, attendees, has_agenda,
-                             has_actions, could_be_email, recurrence]) + "\n"
-    if use_wsl:
-        distro = _wsl_distro()
-        wsl_cmd = ["wsl", "-d", distro, "--"] if distro else ["wsl", "--"]
-        cmd = wsl_cmd + [_to_wsl_path(bin_path)]
-    else:
-        cmd = [str(bin_path)]
-
+    cmd = (wsl_prefix + [_to_wsl_path(bin_path)]) if wsl_prefix else [str(bin_path)]
     result = subprocess.run(cmd, input=stdin_data, capture_output=True, text=True)
 
     if result.returncode != 0:
@@ -144,13 +136,16 @@ def score_meeting(meeting: dict, bin_path: Path, use_wsl: bool = False) -> tuple
     return int(lines[0].strip()), int(lines[1].strip())
 
 
-def generate_report(meeting: dict, waste_score: int, necessity_prob: int) -> str:
+def generate_report(
+    meeting: dict,
+    waste_score: int,
+    necessity_prob: int,
+    classification: str,
+    recommendation: str,
+) -> str:
     title = meeting.get("title", "Untitled Meeting")
-    classification = classify_meeting(waste_score)
-    recommendation = async_recommendation(meeting, waste_score)
     attendees = meeting.get("attendees", [])
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-
     waste_bar = "#" * (waste_score // 10) + "-" * (10 - waste_score // 10)
     necessity_bar = "#" * (necessity_prob // 10) + "-" * (10 - necessity_prob // 10)
 
@@ -212,10 +207,9 @@ def main() -> None:
         print("Usage: python audit_meeting.py <meeting.json>", file=sys.stderr)
         sys.exit(1)
 
-    meeting_path = sys.argv[1]
-    bin_path, use_wsl = ensure_cobol_binary()
-    meeting = load_meeting(meeting_path)
-    waste_score, necessity_prob = score_meeting(meeting, bin_path, use_wsl)
+    bin_path, wsl_prefix = ensure_cobol_binary()
+    meeting = load_meeting(sys.argv[1])
+    waste_score, necessity_prob = score_meeting(meeting, bin_path, wsl_prefix)
 
     title = meeting.get("title", "Untitled Meeting")
     classification = classify_meeting(waste_score)
@@ -224,7 +218,7 @@ def main() -> None:
     width = 62
     print()
     print("=" * width)
-    print(f"  SilentSpace Guardian -- Meeting Audit")
+    print("  SilentSpace Guardian -- Meeting Audit")
     print("=" * width)
     print(f"  Meeting  : {title}")
     print(f"  Waste    : {waste_score}/100")
@@ -233,7 +227,7 @@ def main() -> None:
     print(f"  Async    : {recommendation}")
     print("=" * width)
 
-    report = generate_report(meeting, waste_score, necessity_prob)
+    report = generate_report(meeting, waste_score, necessity_prob, classification, recommendation)
     output_path = save_report(title, report)
     print(f"\n  Report saved to: {output_path.relative_to(ROOT)}")
     print()

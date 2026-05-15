@@ -23,6 +23,7 @@ No meeting is safe. Especially yours.
   - Ubuntu/Debian: `sudo apt install gnucobol`
   - Windows: WSL with Ubuntu is detected and used automatically if `cobc`
     is not on the native PATH. Install via WSL: `sudo apt install gnucobol`
+  - **Windows step-by-step:** see [docs/windows-wsl-setup.md](docs/windows-wsl-setup.md)
 
 ### First Run
 
@@ -81,7 +82,8 @@ silentspace-guardian/
 ├── cobol/
 │   └── entropy_engine.cob     # Waste scoring algorithm (GnuCOBOL)
 ├── docs/
-│   └── architecture.md        # Prose architecture and scoring formula
+│   ├── architecture.md        # Prose architecture and scoring formula
+│   └── windows-wsl-setup.md  # Beginner setup guide for Windows + WSL2
 ├── meetings/                  # 12 mocked meeting JSON files
 ├── python/
 │   ├── audit_meeting.py       # Entry point — compiles COBOL, runs audit, writes report
