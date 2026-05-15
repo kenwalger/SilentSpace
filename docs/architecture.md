@@ -159,7 +159,9 @@ It accepts a meeting dictionary and returns a structured result with no file
 I/O, no side effects, and no console output.
 
 ```python
-from python.audit_meeting import audit_meeting_data
+import sys
+sys.path.insert(0, "python")   # audit_meeting.py imports classify from the same directory
+from audit_meeting import audit_meeting_data
 
 result = audit_meeting_data(
     meeting={

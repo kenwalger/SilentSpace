@@ -10,6 +10,12 @@
 cobol/entropy_engine
 cobol/entropy_engine.exe
 
+# ── Memory ────────────────────────────────────────────────────────────────────
+# Generated meeting history written by the agent at runtime.
+# The sample file is tracked; live history files are not.
+memory/meeting_history.json
+memory/USER.md
+
 # ── Generated Reports ─────────────────────────────────────────────────────────
 # Audit reports are ephemeral output, not source artifacts.
 # The reports/ directory itself is tracked via reports/.gitkeep.

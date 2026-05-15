@@ -16,40 +16,66 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `reports/summary_report.md` containing: total meetings audited, average waste
   score, average necessity probability, estimated weekly focus hours recovered,
   verdict breakdown by tier, top three worst offenders, most common failure mode,
-  and a full meeting table sorted by waste score descending. Reuses the existing
-  `ensure_cobol_binary`, `score_meeting`, `generate_report`, and `save_report`
-  functions from `audit_meeting.py`; adds no new dependencies.
-
-### Changed
-
-- `reports/summary_report.md` tone — Rewritten to read as a boring enterprise
-  dashboard authored by someone quietly losing faith in organizational life.
-  Renamed sections: **Organizational Entropy Report** (header), **Calendar
-  Damage Assessment** (metrics table), **Entropy Distribution by Classification**
-  (adds Share % column), **Priority Remediation Targets** (top 3 with recommended
-  remediation action), **Root Cause Summary** (dry prose), **Full Asset Register**
-  (all meetings). Added three new indicators to the metrics table: **Meetings
-  Spiritually Async** (meetings that are, at their core, an email), **Corporate
-  Heat Death Events** (waste ≥ 81), and **Executive Visibility Rituals** (no
-  agenda, no action items, more than three attendees — they exist to be
-  witnessed). Footer: *"No meeting was held to review this report."*
-
-### Added
+  and a full meeting table sorted by waste score descending.
 
 - `audit_meeting_data(meeting, memory_context=None) -> dict` in
-  `python/audit_meeting.py` — agent-callable interface that accepts a meeting
+  `python/audit_meeting.py` — agent-callable interface. Accepts a meeting
   dictionary, runs the full COBOL scoring pipeline, applies classification and
   recommendation logic, and returns a structured result dict with no file I/O
   and no side effects. The `memory_context` parameter is accepted but unused;
   it is the reserved placeholder for context passed in by an agent framework.
-  Both CLI entry points now call this function internally.
-  `ensure_cobol_binary()` is decorated with `@functools.lru_cache(maxsize=1)`
-  so the WSL distro probe runs at most once per process, regardless of how
-  many meetings are audited in a batch.
+  Both CLI entry points (`audit_meeting.py`, `audit_all_meetings.py`) call this
+  function internally.
 
 - **Agent Tool Boundary section** in `docs/architecture.md` — documents
   `audit_meeting_data` as the integration point for agent frameworks, with a
-  code example and an explanation of the `memory_context` placeholder.
+  working import example and an explanation of the `memory_context` placeholder.
+
+- `docs/memory_model.md` — planning document for persistent agent memory.
+  Covers why memory is the differentiator over stateless scoring, the proposed
+  `audit_history` data shape, example user preference entries, how a longitudinal
+  recurrence penalty could work as a Python post-processing step (not a COBOL
+  change), and an implemented-vs-planned table. Written as scaffolding,
+  not specification.
+
+- `memory/sample_meeting_history.json` — five prior-audit examples spanning
+  the full outcome range: a three-audit heat death event with no structural
+  improvement (Weekly Alignment Sync), a daily standup that reformed its
+  duration, a one-off post-mortem (lowest score in corpus), a maxed-out entropy
+  event whose organizer has left the company (Synergy Touchpoint v3), and a
+  meeting with the strongest reform trajectory in the corpus (Product Roadmap
+  Brainstorm). Scaffolding only — not read by the scoring pipeline.
+
+### Changed
+
+- **`audit_meeting.py` — `main()` delegates to `audit_meeting_data()`** —
+  Scoring, classification, and recommendation logic are no longer duplicated in
+  `main()`. The function calls `audit_meeting_data()` and unpacks the result
+  dict for console output and report generation.
+
+- **`audit_all_meetings.py` — simplified via `audit_meeting_data()`** —
+  `audit_all()` no longer takes `bin_path` and `wsl_prefix` as parameters.
+  Binary resolution is now internal to `audit_meeting_data()`. Removed
+  `ensure_cobol_binary`, `score_meeting` from imports; removed the `classify`
+  import entirely (`classify_meeting` and `async_recommendation` are now
+  encapsulated inside `audit_meeting_data()`).
+
+- **`ensure_cobol_binary()` cached with `@functools.lru_cache(maxsize=1)`** —
+  The WSL distro probe (a subprocess call) now runs at most once per process.
+  In a 12-meeting batch, this reduces WSL subprocess probes from 12 to 1.
+
+- **`reports/summary_report.md` tone** — Rewritten to read as a boring
+  enterprise dashboard authored by someone quietly losing faith in
+  organizational life. Renamed sections: **Organizational Entropy Report**
+  (header with Period Assessed, Prepared by, Distribution), **Calendar Damage
+  Assessment** (metrics table), **Entropy Distribution by Classification**
+  (adds Share % column), **Priority Remediation Targets** (top 3 with
+  recommended remediation action), **Root Cause Summary** (dry prose),
+  **Full Asset Register** (all meetings). Three new indicators added to the
+  metrics table: **Meetings Spiritually Async** (could be email), **Corporate
+  Heat Death Events** (waste ≥ 81), **Executive Visibility Rituals** (no
+  agenda, no action items, more than three attendees). Footer: *"No meeting
+  was held to review this report."*
 
 ### Fixed
 
@@ -60,25 +86,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   on Windows. Report files were already written with explicit `encoding="utf-8"`
   and were unaffected.
 
-- **Slug collapse on punctuation** (`1:1` → `11`)  — `save_report()` stripped
-  punctuation characters before converting whitespace to underscores. Colons and
-  similar chars adjacent to digits were removed silently, merging tokens: `1:1`
-  became `11`. Fixed by replacing non-word characters with a space instead of
-  deleting them, so `1:1 Manager Check-In` → `1_1_manager_check_in_report.md`.
+- **Slug collapse on punctuation** (`1:1` → `11`) — `save_report()` stripped
+  punctuation before converting whitespace to underscores. Colons adjacent to
+  digits were removed silently, merging tokens: `1:1` → `11`. Fixed by
+  replacing non-word characters with a space instead of deleting them, so
+  `1:1 Manager Check-In` → `1_1_manager_check_in_report.md`.
 
 - **Windows path separator in console output** — `Report saved to:` printed a
-  backslash-separated Windows path. Fixed by calling `.as_posix()` on the
-  relative path so output is consistently forward-slash on all platforms.
+  backslash-separated Windows path. Fixed by calling `.as_posix()` so output
+  is consistently forward-slash on all platforms.
 
 - **`CLAUDE.md` incorrect interface description** — Key Workflow step 3 stated
-  the COBOL binary received parameters as "CLI args". The binary reads from
-  stdin. Updated to reflect the actual interface. COBOL Notes section (line 47)
-  had the same error and was corrected in the same pass.
+  the COBOL binary received parameters as "CLI args". COBOL Notes section stated
+  it "Accepts 6 positional CLI arguments". The binary reads from stdin. Both
+  corrected to reflect the actual interface.
 
 - **`docs/architecture.md` stale interface descriptions** — Data flow diagram
-  showed CLI-arg invocation syntax. The Input section was titled "Positional
-  CLI Arguments". The Python Layer description said "6 positional arguments".
-  All three corrected to reflect the stdin interface.
+  showed CLI-arg invocation syntax. The Input section was titled "Positional CLI
+  Arguments". The Python Layer description said "6 positional arguments". All
+  three corrected to reflect the stdin interface. Agent Tool Boundary import
+  example corrected: `from python.audit_meeting import ...` raised
+  `ModuleNotFoundError` because `audit_meeting.py` imports `classify` from
+  its own directory; corrected to include `sys.path.insert(0, "python")`.
 
 - **`docs/windows-wsl-setup.md` outdated "Audit All" section** — Referenced a
   manual shell loop (`for f in meetings/*.json; do ...`) that predates
@@ -90,7 +119,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   variable so the file accurately describes their status.
 
 ### Planned
+
 - Machine-readable output mode (`--format json`)
+- `memory_context` consumed by scoring (longitudinal recurrence penalty,
+  trend-aware recommendation text)
+- `memory/meeting_history.json` written back after each audit
+- `memory/USER.md` user preference file
 
 ---
 
@@ -141,9 +175,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   table, and project layout.
 - `CLAUDE.md` — Claude Code operational guide: JSON schema, COBOL interface,
   scoring formula, tone rules, and explicit out-of-scope list.
-- `ARCHITECTURE.md` — Visual system architecture with five Mermaid.js diagrams:
+- `ARCHITECTURE.md` — Visual system architecture with Mermaid.js diagrams:
   high-level overview, detailed data flow, sequence diagram, COBOL scoring
-  decision tree, and classification tier graph.
+  decision tree, classification tier graph, and module dependency map.
 - `docs/architecture.md` — Detailed prose architecture: input parameters,
   scoring formula, output format, layer responsibilities, JSON schema,
   classification table, and constraint rationale.
