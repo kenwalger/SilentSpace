@@ -33,22 +33,39 @@ python python/audit_meeting.py meetings/weekly_alignment_sync.json
 
 The first run compiles the COBOL entropy engine automatically. Reports are saved to `reports/`.
 
-### Audit Everything
+### Batch Audit — All Meetings
 
 ```bash
-for f in meetings/*.json; do python python/audit_meeting.py "$f"; done
+python python/audit_all_meetings.py
+```
+
+Scores every file in `meetings/`, writes individual reports to `reports/`,
+and produces a summary report at `reports/summary_report.md` with aggregate
+stats, verdict breakdown, top offenders, and most common failure mode.
+
+### Single Meeting
+
+```bash
+python python/audit_meeting.py meetings/weekly_alignment_sync.json
 ```
 
 ---
 
 ## What It Does
 
+**Single audit** (`audit_meeting.py`):
 1. Reads a meeting JSON file from `meetings/`
 2. Extracts six scoring parameters
 3. Passes them to the COBOL entropy engine (`cobol/entropy_engine`)
 4. COBOL returns a `waste_score` and `necessity_probability`
 5. Python classifies the meeting and generates an async recommendation
 6. A Markdown audit report is written to `reports/`
+
+**Batch audit** (`audit_all_meetings.py`):
+1. Runs every JSON file in `meetings/` through the same pipeline
+2. Generates all individual reports
+3. Writes `reports/summary_report.md` with aggregate statistics,
+   verdict breakdown, top offenders, and most common failure mode
 
 ---
 
@@ -86,7 +103,8 @@ silentspace-guardian/
 │   └── windows-wsl-setup.md  # Beginner setup guide for Windows + WSL2
 ├── meetings/                  # 12 mocked meeting JSON files
 ├── python/
-│   ├── audit_meeting.py       # Entry point — compiles COBOL, runs audit, writes report
+│   ├── audit_meeting.py       # Single-meeting audit — compiles COBOL, runs pipeline, writes report
+│   ├── audit_all_meetings.py  # Batch audit — all meetings + summary report
 │   └── classify.py            # Classification tiers and async recommendations
 └── reports/                   # Generated Markdown audit reports (gitignored)
 ```

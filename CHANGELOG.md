@@ -9,9 +9,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- `python/audit_all_meetings.py` — Batch auditor. Scores every JSON file in
+  `meetings/`, writes individual Markdown reports to `reports/`, and produces
+  `reports/summary_report.md` containing: total meetings audited, average waste
+  score, average necessity probability, estimated weekly focus hours recovered,
+  verdict breakdown by tier, top three worst offenders, most common failure mode,
+  and a full meeting table sorted by waste score descending. Reuses the existing
+  `ensure_cobol_binary`, `score_meeting`, `generate_report`, and `save_report`
+  functions from `audit_meeting.py`; adds no new dependencies.
+
 ### Planned
-- CLI flag `--all` to audit every file in `meetings/` in a single pass
-- Summary report aggregating scores across all audited meetings
 - Machine-readable output mode (`--format json`)
 
 ---
