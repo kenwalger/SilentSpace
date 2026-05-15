@@ -9,6 +9,7 @@ Usage:
     python python/audit_meeting.py meetings/weekly_alignment_sync.json
 """
 
+import functools
 import json
 import re
 import shutil
@@ -18,6 +19,11 @@ from datetime import datetime
 from pathlib import Path
 
 from classify import async_recommendation, classify_meeting
+
+# Windows console defaults to CP1252/CP437 and can't display the em-dash in
+# classification labels. Reconfigure stdout to UTF-8 so the verdict prints cleanly.
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).parent.parent
 COBOL_SRC = ROOT / "cobol" / "entropy_engine.cob"
@@ -73,6 +79,7 @@ def _compile(wsl_prefix: list[str]) -> None:
     print("Compilation successful.\n")
 
 
+@functools.lru_cache(maxsize=1)
 def ensure_cobol_binary() -> tuple[Path, list[str]]:
     """Return (bin_path, run_prefix). Compiles if the binary is absent.
 
@@ -136,6 +143,41 @@ def score_meeting(meeting: dict, bin_path: Path, wsl_prefix: list[str]) -> tuple
     return int(lines[0].strip()), int(lines[1].strip())
 
 
+def audit_meeting_data(
+    meeting: dict,
+    memory_context: dict | None = None,
+) -> dict:
+    """Score and classify a meeting dict without reading from a file.
+
+    This is the callable boundary for agent integration. Accepts a meeting
+    dictionary and returns a structured result. memory_context is accepted
+    but unused; reserved for future agent integration.
+
+    Returns:
+        {
+            "title": str,
+            "waste_score": int,
+            "necessity_prob": int,
+            "classification": str,
+            "recommendation": str,
+            "meeting": dict,
+        }
+    """
+    bin_path, wsl_prefix = ensure_cobol_binary()
+    waste_score, necessity_prob = score_meeting(meeting, bin_path, wsl_prefix)
+    classification = classify_meeting(waste_score)
+    recommendation = async_recommendation(meeting, waste_score)
+
+    return {
+        "title": meeting.get("title", "Untitled Meeting"),
+        "waste_score": waste_score,
+        "necessity_prob": necessity_prob,
+        "classification": classification,
+        "recommendation": recommendation,
+        "meeting": meeting,
+    }
+
+
 def generate_report(
     meeting: dict,
     waste_score: int,
@@ -195,7 +237,7 @@ def generate_report(
 
 def save_report(title: str, report: str) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
-    slug = re.sub(r"[^\w\s-]", "", title.lower())
+    slug = re.sub(r"[^\w\s-]", " ", title.lower())
     slug = re.sub(r"[\s-]+", "_", slug).strip("_")
     output_path = REPORTS_DIR / f"{slug}_report.md"
     output_path.write_text(report, encoding="utf-8")
@@ -207,29 +249,30 @@ def main() -> None:
         print("Usage: python audit_meeting.py <meeting.json>", file=sys.stderr)
         sys.exit(1)
 
-    bin_path, wsl_prefix = ensure_cobol_binary()
     meeting = load_meeting(sys.argv[1])
-    waste_score, necessity_prob = score_meeting(meeting, bin_path, wsl_prefix)
-
-    title = meeting.get("title", "Untitled Meeting")
-    classification = classify_meeting(waste_score)
-    recommendation = async_recommendation(meeting, waste_score)
+    result = audit_meeting_data(meeting)
 
     width = 62
     print()
     print("=" * width)
     print("  SilentSpace Guardian -- Meeting Audit")
     print("=" * width)
-    print(f"  Meeting  : {title}")
-    print(f"  Waste    : {waste_score}/100")
-    print(f"  Necessity: {necessity_prob}%")
-    print(f"  Verdict  : {classification}")
-    print(f"  Async    : {recommendation}")
+    print(f"  Meeting  : {result['title']}")
+    print(f"  Waste    : {result['waste_score']}/100")
+    print(f"  Necessity: {result['necessity_prob']}%")
+    print(f"  Verdict  : {result['classification']}")
+    print(f"  Async    : {result['recommendation']}")
     print("=" * width)
 
-    report = generate_report(meeting, waste_score, necessity_prob, classification, recommendation)
-    output_path = save_report(title, report)
-    print(f"\n  Report saved to: {output_path.relative_to(ROOT)}")
+    report = generate_report(
+        result["meeting"],
+        result["waste_score"],
+        result["necessity_prob"],
+        result["classification"],
+        result["recommendation"],
+    )
+    output_path = save_report(result["title"], report)
+    print(f"\n  Report saved to: {output_path.relative_to(ROOT).as_posix()}")
     print()
 
 

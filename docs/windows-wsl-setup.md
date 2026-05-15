@@ -234,11 +234,13 @@ readable in VS Code, GitHub, or any text editor.
 ## Audit All 12 Meetings at Once
 
 ```bash
-for f in meetings/*.json; do python3 python/audit_meeting.py "$f"; done
+python3 python/audit_all_meetings.py
 ```
 
-This loops through every meeting file in `meetings/` and produces a separate
-report in `reports/` for each one.
+This scores every JSON file in `meetings/`, writes individual Markdown reports
+to `reports/`, and produces a summary report at `reports/summary_report.md`
+with aggregate statistics, verdict breakdown, top offenders, and most common
+failure mode.
 
 ---
 

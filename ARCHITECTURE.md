@@ -13,12 +13,15 @@ Three layers. No network calls. One existential question per meeting.
 graph LR
     subgraph Data["Data Layer"]
         M["meetings/*.json\n(12 meeting files)"]
+        MEM["memory/\nHistory Scaffolding"]
     end
 
     subgraph Logic["Scoring & Classification Layer"]
-        PY["audit_meeting.py\nOrchestrator"]
+        AMD["audit_meeting_data()\nAgent Interface"]
         CB["entropy_engine\n(COBOL binary)"]
         CL["classify.py\nClassifier"]
+        PY["audit_meeting.py\nCLI + orchestration"]
+        BATCH["audit_all_meetings.py\nBatch Runner"]
     end
 
     subgraph Output["Reporting Layer"]
@@ -27,10 +30,15 @@ graph LR
     end
 
     M --> PY
-    PY <-->|"6 args / 2 ints"| CB
-    PY <-->|"score / verdict"| CL
+    M --> BATCH
+    MEM -.->|"planned"| AMD
+    PY --> AMD
+    BATCH --> AMD
+    AMD <-->|"6 values via stdin\n2 ints via stdout"| CB
+    AMD <-->|"score / verdict"| CL
     PY --> CON
     PY --> RPT
+    BATCH --> RPT
 ```
 
 ---
@@ -48,7 +56,7 @@ flowchart TD
     D -- No --> E["cobc -x -o entropy_engine\nentropy_engine.cob"]:::compile
     E --> F
 
-    D -- Yes --> F["Invoke: ./entropy_engine\ndur att agenda actions email recur"]:::cobol
+    D -- Yes --> F["Pipe to stdin: entropy_engine\n6 values, one per line"]:::cobol
 
     F --> G["Parse stdout\nLine 1: waste_score\nLine 2: necessity_prob"]
 
@@ -93,7 +101,7 @@ sequenceDiagram
     audit->>fs: open meetings/foo.json
     fs-->>audit: meeting dict
 
-    audit->>cobol: ./entropy_engine 60 6 0 0 1 3
+    audit->>cobol: stdin "60\n6\n0\n0\n1\n3\n"
     Note right of cobol: dur=60, att=6, agenda=0,<br/>actions=0, email=1, recur=3 (weekly)
     cobol-->>audit: "092\n008"
     Note left of cobol: waste=92, necessity=8
@@ -186,20 +194,29 @@ graph TD
 
 ```mermaid
 graph LR
-    CLI["CLI\npython audit_meeting.py foo.json"]
+    CLI1["python audit_meeting.py foo.json"]
+    CLI2["python audit_all_meetings.py"]
+    AGENT["audit_meeting_data()\ncalled by agent"]
 
-    CLI --> audit["audit_meeting.py"]
+    CLI1 --> audit["audit_meeting.py"]
+    CLI2 --> batch["audit_all_meetings.py"]
+    AGENT --> audit
+
+    batch --> audit
 
     audit --> json_mod["json\nstdlib"]
     audit --> subprocess["subprocess\nstdlib"]
     audit --> pathlib["pathlib\nstdlib"]
     audit --> re["re\nstdlib"]
+    audit --> functools["functools\nstdlib"]
     audit --> classify["classify.py"]
     audit --> cobol_bin["entropy_engine\ncompiled COBOL"]
 
     classify --> hashlib["hashlib\nstdlib"]
 
     cobol_bin -.->|"compiled from"| cobol_src["entropy_engine.cob\nGnuCOBOL source"]
+
+    mem["memory/\nsample_meeting_history.json"] -.->|"planned: memory_context"| audit
 ```
 
 > **Zero third-party dependencies.** The entire Python layer uses only the standard library.

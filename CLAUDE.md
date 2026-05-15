@@ -10,7 +10,7 @@ classifying each meeting by its organizational waste footprint.
 
 1. Python reads a meeting JSON from `meetings/`
 2. Python extracts 6 scoring parameters from the JSON
-3. Python calls the compiled COBOL binary (`cobol/entropy_engine`) with those parameters as CLI args
+3. Python pipes the 6 parameters to the compiled COBOL binary (`cobol/entropy_engine`) via stdin, one value per line
 4. COBOL returns two integers (waste_score, necessity_prob) on separate stdout lines
 5. Python calls `python/classify.py` for a human-readable verdict and async recommendation
 6. Python writes a Markdown report to `reports/<slug>_report.md`
@@ -44,7 +44,7 @@ Required fields:
 ## COBOL Notes
 
 - `cobol/entropy_engine.cob` uses GnuCOBOL fixed-format syntax
-- Accepts 6 positional CLI arguments (see `docs/architecture.md` for full formula)
+- Reads 6 values from stdin, one per line: duration_minutes, attendee_count, has_agenda (0/1), has_action_items (0/1), could_be_email (0/1), recurrence_level (0–4)
 - Outputs two integers on separate stdout lines: waste_score then necessity_prob
 - All scoring is deterministic — same input always yields same output
 

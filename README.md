@@ -99,11 +99,14 @@ silentspace-guardian/
 ├── cobol/
 │   └── entropy_engine.cob     # Waste scoring algorithm (GnuCOBOL)
 ├── docs/
-│   ├── architecture.md        # Prose architecture and scoring formula
+│   ├── architecture.md        # Prose architecture, scoring formula, agent boundary
+│   ├── memory_model.md        # Memory planning doc for future Hermes integration
 │   └── windows-wsl-setup.md  # Beginner setup guide for Windows + WSL2
 ├── meetings/                  # 12 mocked meeting JSON files
+├── memory/
+│   └── sample_meeting_history.json  # Sample prior-audit data (scaffolding)
 ├── python/
-│   ├── audit_meeting.py       # Single-meeting audit — compiles COBOL, runs pipeline, writes report
+│   ├── audit_meeting.py       # Single-meeting audit + audit_meeting_data() agent interface
 │   ├── audit_all_meetings.py  # Batch audit — all meetings + summary report
 │   └── classify.py            # Classification tiers and async recommendations
 └── reports/                   # Generated Markdown audit reports (gitignored)

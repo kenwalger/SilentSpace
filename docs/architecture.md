@@ -14,10 +14,10 @@ SilentSpace Guardian is a three-layer pipeline for meeting waste analysis:
 meetings/<name>.json
         │
         ▼
-python/audit_meeting.py
+python/audit_meeting.py  ──  load_meeting() + audit_meeting_data()
    ├── 1. Load and parse JSON
    ├── 2. Extract 6 scoring parameters
-   ├── 3. Invoke: cobol/entropy_engine <dur> <att> <agenda> <actions> <email> <recur>
+   ├── 3. Pipe to stdin: cobol/entropy_engine (6 values, one per line)
    │              └── stdout: two integers (waste_score, necessity_prob)
    ├── 4. python/classify.py → classification label + async recommendation
    └── 5. Write: reports/<meeting_slug>_report.md
@@ -31,9 +31,9 @@ python/audit_meeting.py
 **Compiled binary:** `cobol/entropy_engine` (or `entropy_engine.exe` on Windows)
 **Compiler:** GnuCOBOL (`cobc`)
 
-### Input — Positional CLI Arguments
+### Input — stdin (6 values, one per line)
 
-| # | Parameter | Type | Values |
+| Line | Parameter | Type | Values |
 |---|---|---|---|
 | 1 | `duration_minutes` | integer | Meeting length in minutes |
 | 2 | `attendee_count` | integer | Number of attendees |
@@ -97,16 +97,17 @@ Line 1 = waste_score, Line 2 = necessity_prob.
 
 ### `python/audit_meeting.py`
 
-Entry point. Responsibilities:
+Entry point and agent-callable interface. Responsibilities:
 
 1. **Auto-compilation** — compiles `entropy_engine.cob` on first run if binary is absent
-2. **JSON loading** — reads the meeting file from the given path
-3. **Parameter extraction** — maps JSON fields to COBOL's 6 positional arguments
-4. **Subprocess call** — invokes the COBOL binary, captures stdout
-5. **Output parsing** — reads two integer lines from stdout
-6. **Printing** — formatted console summary
-7. **Report generation** — calls `classify.py`, assembles Markdown
-8. **File write** — saves to `reports/<slug>_report.md`
+2. **JSON loading** — reads the meeting file from the given path (`load_meeting`)
+3. **Agent interface** — `audit_meeting_data(meeting, memory_context=None) -> dict` accepts a meeting dict directly, runs the full scoring pipeline, and returns a structured result; no file I/O required
+4. **Parameter extraction** — maps JSON fields to 6 stdin values for the COBOL binary
+5. **Subprocess call** — invokes the COBOL binary, pipes parameters via stdin, captures stdout
+6. **Output parsing** — reads two integer lines from stdout
+7. **Printing** — formatted console summary (CLI path only)
+8. **Report generation** — calls `classify.py`, assembles Markdown
+9. **File write** — saves to `reports/<slug>_report.md` (CLI path only)
 
 ### `python/classify.py`
 
@@ -148,6 +149,48 @@ Provides two pure functions:
 | 41–60 | Calendar Debris: Occupies Space, Creates Little |
 | 61–80 | Meeting-Shaped Void: Time's Natural Enemy |
 | 81–100 | Corporate Heat Death Event: Entropy Made Flesh |
+
+---
+
+## Agent Tool Boundary
+
+`audit_meeting_data` is the intended integration point for agent frameworks.
+It accepts a meeting dictionary and returns a structured result with no file
+I/O, no side effects, and no console output.
+
+```python
+import sys
+sys.path.insert(0, "python")   # audit_meeting.py imports classify from the same directory
+from audit_meeting import audit_meeting_data
+
+result = audit_meeting_data(
+    meeting={
+        "title": "Weekly Alignment Sync",
+        "recurrence": "weekly",
+        "duration_minutes": 60,
+        "attendees": ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank"],
+        "has_agenda": False,
+        "has_action_items": False,
+        "could_be_email": True,
+        "organizer": "alice@corp.com",
+        "description": "...",
+    }
+)
+# result["waste_score"]    → int
+# result["necessity_prob"] → int
+# result["classification"] → str
+# result["recommendation"] → str
+# result["meeting"]        → dict (original input)
+```
+
+The `memory_context` parameter is accepted but not yet used. It is the
+placeholder for context passed in by Hermes — conversation history, user
+preferences, prior audit results — so the function signature is stable
+before integration begins.
+
+The CLI commands (`audit_meeting.py`, `audit_all_meetings.py`) call this
+function internally. They add file loading, console output, and Markdown
+report writing on top of it; none of that is part of the callable interface.
 
 ---
 
