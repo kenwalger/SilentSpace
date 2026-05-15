@@ -69,6 +69,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `docs/architecture.md` — Detailed prose architecture: input parameters,
   scoring formula, output format, layer responsibilities, JSON schema,
   classification table, and constraint rationale.
+- `docs/windows-wsl-setup.md` — Beginner-friendly Windows setup guide
+  covering WSL2 installation, Ubuntu configuration, Python and GnuCOBOL
+  installation, manual compilation, and a full first-run walkthrough with
+  expected output and a troubleshooting section.
 
 #### Open Source Governance
 - `LICENSE.md` — MIT License.
@@ -88,6 +92,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   descriptions and default values.
 - `reports/.gitkeep` — Placeholder to track the output directory in git
   without committing generated report files.
+
+### Fixed
+
+- **Second-run failure on Windows** — `ensure_cobol_binary()` previously
+  returned a bare `COBOL_BIN` path with `use_wsl=False` whenever the binary
+  existed on disk, regardless of platform. On Windows the binary is a Linux
+  ELF compiled by WSL; attempting to execute it natively fails silently on
+  the first invocation and loudly on every subsequent one. Fixed by checking
+  `sys.platform == "win32"` when the binary is found and routing execution
+  back through WSL.
+- **WSL distro probed twice per invocation** — `_wsl_distro()` was called
+  independently during compilation and again during execution, each spawning
+  a `wsl --which cobc` subprocess. Consolidated into a single
+  `_get_wsl_prefix()` call whose result is threaded through to `score_meeting()`.
+- **Classification computed redundantly** — `classify_meeting()` and
+  `async_recommendation()` were each called twice: once in `main()` for
+  console output and again inside `generate_report()`. Both functions now
+  receive the pre-computed values as arguments.
+
+### Changed
+
+- `_compile_native()` and `_compile_wsl()` merged into `_compile(wsl_prefix)`.
+  Empty prefix means native; non-empty means WSL. One function instead of two.
+- `ensure_cobol_binary()` return type changed from `tuple[Path, bool]` to
+  `tuple[Path, list[str]]`. The WSL command prefix is now concrete and
+  reusable rather than a flag that callers had to re-derive.
 
 ---
 
