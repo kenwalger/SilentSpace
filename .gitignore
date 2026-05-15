@@ -1,0 +1,43 @@
+# SilentSpace Guardian — .gitignore
+
+# ── Environment ───────────────────────────────────────────────────────────────
+# Local secrets and overrides. See example.env for reference.
+.env
+
+# ── COBOL Compiled Binaries ───────────────────────────────────────────────────
+# Compiled from cobol/entropy_engine.cob via: cobc -x -o entropy_engine entropy_engine.cob
+# Regenerated automatically by audit_meeting.py on first run.
+cobol/entropy_engine
+cobol/entropy_engine.exe
+
+# ── Generated Reports ─────────────────────────────────────────────────────────
+# Audit reports are ephemeral output, not source artifacts.
+# The reports/ directory itself is tracked via reports/.gitkeep.
+reports/*.md
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# ── IDE & Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+commit-message.txt
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

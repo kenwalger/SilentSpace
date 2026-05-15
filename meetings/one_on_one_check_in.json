@@ -1,0 +1,14 @@
+{
+  "title": "1:1 Manager Check-In",
+  "recurrence": "biweekly",
+  "duration_minutes": 30,
+  "attendees": [
+    "Manager",
+    "Direct Report"
+  ],
+  "has_agenda": true,
+  "has_action_items": true,
+  "could_be_email": false,
+  "organizer": "manager@corp.com",
+  "description": "Two people. Thirty minutes. An agenda. Action items. The guardian is suspicious but cannot fault it."
+}

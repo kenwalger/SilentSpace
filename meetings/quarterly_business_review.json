@@ -1,0 +1,20 @@
+{
+  "title": "Q4 Business Review",
+  "recurrence": "monthly",
+  "duration_minutes": 120,
+  "attendees": [
+    "CEO",
+    "CTO",
+    "CFO",
+    "VP Sales",
+    "VP Marketing",
+    "VP Engineering",
+    "Director of Product",
+    "Director of Operations"
+  ],
+  "has_agenda": true,
+  "has_action_items": true,
+  "could_be_email": false,
+  "organizer": "ceo@corp.com",
+  "description": "Quarterly review of whether we are still doing the thing we said we would do."
+}

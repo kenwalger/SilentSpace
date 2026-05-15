@@ -1,0 +1,17 @@
+{
+  "title": "Annual Strategy Offsite Planning Session",
+  "recurrence": "monthly",
+  "duration_minutes": 240,
+  "attendees": [
+    "CEO", "CTO", "CFO",
+    "VP Engineering", "VP Product", "VP Sales",
+    "Director of Strategy", "Director of Operations",
+    "Lead Architect", "Head of Data",
+    "Senior PM", "Senior Designer"
+  ],
+  "has_agenda": true,
+  "has_action_items": true,
+  "could_be_email": false,
+  "organizer": "ceo@corp.com",
+  "description": "Four hours. Twelve people. A whiteboard. The outcomes will be summarized in a deck that is never opened again."
+}

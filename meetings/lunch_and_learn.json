@@ -1,0 +1,16 @@
+{
+  "title": "Lunch & Learn: Observability Best Practices",
+  "recurrence": "monthly",
+  "duration_minutes": 60,
+  "attendees": [
+    "Engineering Team (10 members)",
+    "Product Team (3 members)",
+    "Operations Team (2 members)",
+    "Volunteer Attendees (5 members)"
+  ],
+  "has_agenda": true,
+  "has_action_items": false,
+  "could_be_email": false,
+  "organizer": "engineering-lead@corp.com",
+  "description": "Optional, educational, and catered. The entropy engine is uncertain what to do with this one."
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Production Incident Post-Mortem: DB Failover Delay",
+  "recurrence": "none",
+  "duration_minutes": 60,
+  "attendees": [
+    "Incident Commander",
+    "On-Call Engineer",
+    "Database Lead",
+    "Platform Lead"
+  ],
+  "has_agenda": true,
+  "has_action_items": true,
+  "could_be_email": false,
+  "organizer": "incident-commander@corp.com",
+  "description": "A genuine post-mortem. Four people, a timeline, and the quiet resolve to fix the thing that broke."
+}

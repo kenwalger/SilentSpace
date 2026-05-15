@@ -1,0 +1,17 @@
+{
+  "title": "Product Roadmap Brainstorm",
+  "recurrence": "monthly",
+  "duration_minutes": 60,
+  "attendees": [
+    "Product Manager",
+    "Lead Engineer",
+    "UX Designer",
+    "Data Analyst",
+    "Customer Success Lead"
+  ],
+  "has_agenda": true,
+  "has_action_items": true,
+  "could_be_email": false,
+  "organizer": "product.manager@corp.com",
+  "description": "Structured ideation with an actual agenda. Rare. Treasure it."
+}

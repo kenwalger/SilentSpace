@@ -1,0 +1,16 @@
+{
+  "title": "Synergy Touchpoint v3 (Rescheduled)",
+  "recurrence": "weekly",
+  "duration_minutes": 90,
+  "attendees": [
+    "Stakeholder A", "Stakeholder B", "Stakeholder C",
+    "Stakeholder D", "Stakeholder E", "Stakeholder F",
+    "Stakeholder G", "Stakeholder H", "Stakeholder I",
+    "Stakeholder J", "Observer", "Notetaker"
+  ],
+  "has_agenda": false,
+  "has_action_items": false,
+  "could_be_email": true,
+  "organizer": "unknown@corp.com",
+  "description": "This is the third version of a meeting that should not have had a first version. The organizer has left the company."
+}

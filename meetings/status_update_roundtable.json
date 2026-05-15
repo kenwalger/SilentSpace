@@ -1,0 +1,20 @@
+{
+  "title": "Weekly Status Update Roundtable",
+  "recurrence": "weekly",
+  "duration_minutes": 60,
+  "attendees": [
+    "Team Lead Alpha",
+    "Team Lead Beta",
+    "Team Lead Gamma",
+    "Team Lead Delta",
+    "Team Lead Epsilon",
+    "Team Lead Zeta",
+    "Senior Manager",
+    "Director"
+  ],
+  "has_agenda": false,
+  "has_action_items": false,
+  "could_be_email": true,
+  "organizer": "director@corp.com",
+  "description": "Eight people spend 60 minutes reading from spreadsheets they emailed to each other on Monday."
+}

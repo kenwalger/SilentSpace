@@ -1,0 +1,20 @@
+{
+  "title": "Daily Engineering Standup",
+  "recurrence": "daily",
+  "duration_minutes": 30,
+  "attendees": [
+    "Alice Chen",
+    "Bob Thornton",
+    "Carol Davis",
+    "Dave Marsh",
+    "Eve Liu",
+    "Frank Okafor",
+    "Grace Kim",
+    "Hiro Tanaka"
+  ],
+  "has_agenda": true,
+  "has_action_items": false,
+  "could_be_email": false,
+  "organizer": "engineering-lead@corp.com",
+  "description": "15 minutes became 30. 30 became 45. We compromised at 30 and called it a win."
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Monthly Executive All-Hands",
+  "recurrence": "monthly",
+  "duration_minutes": 60,
+  "attendees": [
+    "CEO", "CTO", "CFO", "COO", "CPO",
+    "VP Engineering", "VP Sales", "VP Marketing", "VP HR", "VP Legal",
+    "Director of Product", "Director of Design", "Director of Data",
+    "Engineering Lead", "Sales Lead"
+  ],
+  "has_agenda": true,
+  "has_action_items": false,
+  "could_be_email": false,
+  "organizer": "ceo@corp.com",
+  "description": "The CEO shares the slide deck that was emailed Friday. Culture. Values. The roadmap. Q&A cut short due to time."
+}

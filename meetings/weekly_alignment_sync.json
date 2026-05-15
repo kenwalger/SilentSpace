@@ -1,0 +1,18 @@
+{
+  "title": "Weekly Alignment Sync",
+  "recurrence": "weekly",
+  "duration_minutes": 60,
+  "attendees": [
+    "Alice Chen",
+    "Bob Thornton",
+    "Carol Davis",
+    "Dave Marsh",
+    "Eve Liu",
+    "Frank Okafor"
+  ],
+  "has_agenda": false,
+  "has_action_items": false,
+  "could_be_email": true,
+  "organizer": "alice.chen@corp.com",
+  "description": "Weekly sync to align on our alignment. Recurring since Q3 2019. No one remembers why it started."
+}

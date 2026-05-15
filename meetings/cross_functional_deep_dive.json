@@ -1,0 +1,22 @@
+{
+  "title": "Cross-Functional Synergy Deep Dive",
+  "recurrence": "biweekly",
+  "duration_minutes": 90,
+  "attendees": [
+    "Product",
+    "Engineering",
+    "Design",
+    "Marketing",
+    "Sales",
+    "Legal",
+    "HR",
+    "Finance",
+    "Security",
+    "Customer Success"
+  ],
+  "has_agenda": false,
+  "has_action_items": false,
+  "could_be_email": false,
+  "organizer": "vp.strategy@corp.com",
+  "description": "All stakeholders in one room, talking past each other in real time. Synergy pending."
+}
