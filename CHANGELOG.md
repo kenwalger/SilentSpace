@@ -20,6 +20,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `ensure_cobol_binary`, `score_meeting`, `generate_report`, and `save_report`
   functions from `audit_meeting.py`; adds no new dependencies.
 
+### Changed
+
+- `reports/summary_report.md` tone — Rewritten to read as a boring enterprise
+  dashboard authored by someone quietly losing faith in organizational life.
+  Renamed sections: **Organizational Entropy Report** (header), **Calendar
+  Damage Assessment** (metrics table), **Entropy Distribution by Classification**
+  (adds Share % column), **Priority Remediation Targets** (top 3 with recommended
+  remediation action), **Root Cause Summary** (dry prose), **Full Asset Register**
+  (all meetings). Added three new indicators to the metrics table: **Meetings
+  Spiritually Async** (meetings that are, at their core, an email), **Corporate
+  Heat Death Events** (waste ≥ 81), and **Executive Visibility Rituals** (no
+  agenda, no action items, more than three attendees — they exist to be
+  witnessed). Footer: *"No meeting was held to review this report."*
+
 ### Planned
 - Machine-readable output mode (`--format json`)
 

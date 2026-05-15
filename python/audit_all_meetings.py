@@ -65,17 +65,39 @@ def _focus_hours_recovered(results: list[dict]) -> float:
     return round(total, 1)
 
 
-def _most_common_failure(results: list[dict]) -> str:
+def _most_common_failure(results: list[dict]) -> tuple[str, int, int]:
+    """Return (label, count, pct) for the most prevalent failure mode."""
     counts: Counter = Counter()
     for r in results:
         for label, check in FAILURE_MODES:
             if check(r["meeting"]):
                 counts[label] += 1
     if not counts:
-        return "None identified."
+        return "None identified.", 0, 0
     label, n = counts.most_common(1)[0]
     pct = round(n / len(results) * 100)
-    return f'"{label}" — present in {n} of {len(results)} meetings ({pct}%)'
+    return label, n, pct
+
+
+def _count_spiritually_async(results: list[dict]) -> int:
+    """Meetings that could have been emails."""
+    return sum(1 for r in results if r["meeting"].get("could_be_email", False))
+
+
+def _count_heat_death(results: list[dict]) -> int:
+    """Meetings classified as Corporate Heat Death Events (waste >= 81)."""
+    return sum(1 for r in results if r["waste_score"] >= 81)
+
+
+def _count_visibility_rituals(results: list[dict]) -> int:
+    """Meetings with no agenda, no action items, and more than 3 attendees.
+    These exist to be witnessed, not to accomplish anything."""
+    return sum(
+        1 for r in results
+        if not r["meeting"].get("has_agenda", True)
+        and not r["meeting"].get("has_action_items", True)
+        and len(r["meeting"].get("attendees", [])) > 3
+    )
 
 
 def audit_all(bin_path: Path, wsl_prefix: list[str]) -> list[dict]:
@@ -102,6 +124,7 @@ def audit_all(bin_path: Path, wsl_prefix: list[str]) -> list[dict]:
             "waste_score": waste_score,
             "necessity_prob": necessity_prob,
             "classification": classification,
+            "recommendation": recommendation,
         })
 
         print(f"  {waste_score:3d}/100  {meeting.get('title', path.stem)}")
@@ -114,78 +137,103 @@ def generate_summary(results: list[dict]) -> str:
     avg_waste = round(sum(r["waste_score"] for r in results) / n)
     avg_necessity = round(sum(r["necessity_prob"] for r in results) / n)
     recovered = _focus_hours_recovered(results)
-    failure = _most_common_failure(results)
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    failure_label, failure_count, failure_pct = _most_common_failure(results)
+    spiritually_async = _count_spiritually_async(results)
+    heat_death = _count_heat_death(results)
+    visibility_rituals = _count_visibility_rituals(results)
+    timestamp = datetime.now().strftime("%Y-%m-%d")
 
     by_waste = sorted(results, key=lambda r: r["waste_score"], reverse=True)
 
-    verdict_counts = Counter(_verdict_short(r["classification"]) for r in results)
-    verdict_rows = "\n".join(
-        f"| {v} | {c} |"
-        for v, c in sorted(verdict_counts.items(), key=lambda x: -x[1])
+    tier_counts = Counter(_verdict_short(r["classification"]) for r in results)
+    tier_rows = "\n".join(
+        f"| {tier} | {count} | {round(count / n * 100)}% |"
+        for tier, count in sorted(tier_counts.items(), key=lambda x: -x[1])
     )
 
-    top3 = "\n".join(
-        f"{i + 1}. **{r['title']}** — {r['waste_score']}/100 waste, "
-        f"{r['necessity_prob']}% necessity"
+    remediation_rows = "\n".join(
+        f"| {i + 1} | {r['title']} | {r['waste_score']}/100 | "
+        f"{r['necessity_prob']}% | {r['recommendation']} |"
         for i, r in enumerate(by_waste[:3])
     )
 
-    all_rows = "\n".join(
+    asset_rows = "\n".join(
         f"| {r['title']} | {r['waste_score']}/100 | {r['necessity_prob']}% "
         f"| {_verdict_short(r['classification'])} |"
         for r in by_waste
     )
 
-    return f"""# SilentSpace Guardian — Batch Audit Summary
+    return f"""# Organizational Entropy Report
 
-*{n} meetings audited on {timestamp}*
+**Period Assessed:** {timestamp}
+**Prepared by:** SilentSpace Guardian — Calendar Governance Module v0.1.0
+**Distribution:** Internal Use Only
 
 ---
 
-## By the Numbers
+## Calendar Damage Assessment
 
-| Metric | Value |
+| Indicator | Value |
 |---|---|
 | **Meetings Audited** | {n} |
-| **Average Waste Score** | {avg_waste}/100 |
+| **Average Waste Score** | {avg_waste} / 100 |
 | **Average Necessity Probability** | {avg_necessity}% |
-| **Estimated Weekly Focus Hours Recovered** | {recovered} hrs |
+| **Focus Hours Recovered (est. weekly)** | {recovered} hrs |
+| **Meetings Spiritually Async** | {spiritually_async} |
+| **Corporate Heat Death Events** | {heat_death} |
+| **Executive Visibility Rituals** | {visibility_rituals} |
 
-> Focus hours recovered: cumulative weekly time from meetings scoring ≥ 60,
-> weighted by recurrence. One-off meetings are excluded (sunk cost, not ongoing).
-
----
-
-## Verdict Breakdown
-
-| Classification | Count |
-|---|---|
-{verdict_rows}
-
----
-
-## Top 3 Worst Offenders
-
-{top3}
+> Focus hours recovered: estimated weekly time returned to focused work by cancelling
+> or converting meetings scoring ≥ 60 on the Waste Index. One-time events are excluded
+> from the weekly projection as the loss has already occurred.
+>
+> Meetings Spiritually Async: meetings that are, at their core, an email.
+> Executive Visibility Rituals: recurring meetings with no agenda, no action items,
+> and more than three attendees. They exist to be witnessed.
 
 ---
 
-## Most Common Failure Mode
+## Entropy Distribution by Classification
 
-{failure}
+| Classification | Count | Share |
+|---|---|---|
+{tier_rows}
 
 ---
 
-## All Meetings (sorted by waste score)
+## Priority Remediation Targets
 
-| Meeting | Waste | Necessity | Verdict |
+The three meetings with the highest waste scores are listed below.
+Remediation is recommended at the earliest opportunity that does not itself require a meeting.
+
+| # | Meeting | Waste | Necessity | Recommended Remediation |
+|---|---|---|---|---|
+{remediation_rows}
+
+---
+
+## Root Cause Summary
+
+**Primary Entropy Driver:** "{failure_label}"
+Identified in {failure_count} of {n} meetings ({failure_pct}%).
+
+Meetings without expected outputs generate discussion without obligation. This pattern
+suggests a structural misalignment between calendar activity and organizational output.
+It is not, at this time, considered an anomaly.
+
+---
+
+## Full Asset Register
+
+*All meetings assessed in this reporting period, sorted by waste score.*
+
+| Meeting | Waste | Necessity | Classification |
 |---|---|---|---|
-{all_rows}
+{asset_rows}
 
 ---
 
-*SilentSpace Guardian v0.1.0 — Protecting calendars, one audit at a time.*
+*SilentSpace Guardian v0.1.0 — Issued automatically. No meeting was held to review this report.*
 """
 
 
