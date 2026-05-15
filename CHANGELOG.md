@@ -34,6 +34,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   agenda, no action items, more than three attendees — they exist to be
   witnessed). Footer: *"No meeting was held to review this report."*
 
+### Added
+
+- `audit_meeting_data(meeting, memory_context=None) -> dict` in
+  `python/audit_meeting.py` — agent-callable interface that accepts a meeting
+  dictionary, runs the full COBOL scoring pipeline, applies classification and
+  recommendation logic, and returns a structured result dict with no file I/O
+  and no side effects. The `memory_context` parameter is accepted but unused;
+  it is the reserved placeholder for context passed in by an agent framework.
+  Both CLI entry points now call this function internally.
+  `ensure_cobol_binary()` is decorated with `@functools.lru_cache(maxsize=1)`
+  so the WSL distro probe runs at most once per process, regardless of how
+  many meetings are audited in a batch.
+
+- **Agent Tool Boundary section** in `docs/architecture.md` — documents
+  `audit_meeting_data` as the integration point for agent frameworks, with a
+  code example and an explanation of the `memory_context` placeholder.
+
 ### Fixed
 
 - **Windows console encoding** — Classification labels contain an em-dash that
@@ -55,7 +72,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **`CLAUDE.md` incorrect interface description** — Key Workflow step 3 stated
   the COBOL binary received parameters as "CLI args". The binary reads from
-  stdin. Updated to reflect the actual interface.
+  stdin. Updated to reflect the actual interface. COBOL Notes section (line 47)
+  had the same error and was corrected in the same pass.
+
+- **`docs/architecture.md` stale interface descriptions** — Data flow diagram
+  showed CLI-arg invocation syntax. The Input section was titled "Positional
+  CLI Arguments". The Python Layer description said "6 positional arguments".
+  All three corrected to reflect the stdin interface.
 
 - **`docs/windows-wsl-setup.md` outdated "Audit All" section** — Referenced a
   manual shell loop (`for f in meetings/*.json; do ...`) that predates

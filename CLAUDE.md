@@ -44,7 +44,7 @@ Required fields:
 ## COBOL Notes
 
 - `cobol/entropy_engine.cob` uses GnuCOBOL fixed-format syntax
-- Accepts 6 positional CLI arguments (see `docs/architecture.md` for full formula)
+- Reads 6 values from stdin, one per line: duration_minutes, attendee_count, has_agenda (0/1), has_action_items (0/1), could_be_email (0/1), recurrence_level (0–4)
 - Outputs two integers on separate stdout lines: waste_score then necessity_prob
 - All scoring is deterministic — same input always yields same output
 

@@ -22,13 +22,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from audit_meeting import (
     ROOT,
     REPORTS_DIR,
-    ensure_cobol_binary,
+    audit_meeting_data,
     generate_report,
     load_meeting,
     save_report,
-    score_meeting,
 )
-from classify import async_recommendation, classify_meeting
 
 MEETINGS_DIR = ROOT / "meetings"
 
@@ -103,7 +101,7 @@ def _count_visibility_rituals(results: list[dict]) -> int:
     )
 
 
-def audit_all(bin_path: Path, wsl_prefix: list[str]) -> list[dict]:
+def audit_all() -> list[dict]:
     meeting_files = sorted(MEETINGS_DIR.glob("*.json"))
     if not meeting_files:
         print(f"No meeting files found in {MEETINGS_DIR}", file=sys.stderr)
@@ -112,25 +110,19 @@ def audit_all(bin_path: Path, wsl_prefix: list[str]) -> list[dict]:
     results = []
     for path in meeting_files:
         meeting = load_meeting(str(path))
-        waste_score, necessity_prob = score_meeting(meeting, bin_path, wsl_prefix)
-        classification = classify_meeting(waste_score)
-        recommendation = async_recommendation(meeting, waste_score)
+        result = audit_meeting_data(meeting)
 
         report = generate_report(
-            meeting, waste_score, necessity_prob, classification, recommendation
+            result["meeting"],
+            result["waste_score"],
+            result["necessity_prob"],
+            result["classification"],
+            result["recommendation"],
         )
-        save_report(meeting.get("title", path.stem), report)
+        save_report(result["title"], report)
+        results.append(result)
 
-        results.append({
-            "title": meeting.get("title", path.stem),
-            "meeting": meeting,
-            "waste_score": waste_score,
-            "necessity_prob": necessity_prob,
-            "classification": classification,
-            "recommendation": recommendation,
-        })
-
-        print(f"  {waste_score:3d}/100  {meeting.get('title', path.stem)}")
+        print(f"  {result['waste_score']:3d}/100  {result['title']}")
 
     return results
 
@@ -248,8 +240,7 @@ def main() -> None:
     print("=" * width)
     print()
 
-    bin_path, wsl_prefix = ensure_cobol_binary()
-    results = audit_all(bin_path, wsl_prefix)
+    results = audit_all()
 
     n = len(results)
     avg_waste = round(sum(r["waste_score"] for r in results) / n)
