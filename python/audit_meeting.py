@@ -19,6 +19,11 @@ from pathlib import Path
 
 from classify import async_recommendation, classify_meeting
 
+# Windows console defaults to CP1252/CP437 and can't display the em-dash in
+# classification labels. Reconfigure stdout to UTF-8 so the verdict prints cleanly.
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).parent.parent
 COBOL_SRC = ROOT / "cobol" / "entropy_engine.cob"
 COBOL_BIN = ROOT / "cobol" / "entropy_engine"
@@ -195,7 +200,7 @@ def generate_report(
 
 def save_report(title: str, report: str) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
-    slug = re.sub(r"[^\w\s-]", "", title.lower())
+    slug = re.sub(r"[^\w\s-]", " ", title.lower())
     slug = re.sub(r"[\s-]+", "_", slug).strip("_")
     output_path = REPORTS_DIR / f"{slug}_report.md"
     output_path.write_text(report, encoding="utf-8")
@@ -229,7 +234,7 @@ def main() -> None:
 
     report = generate_report(meeting, waste_score, necessity_prob, classification, recommendation)
     output_path = save_report(title, report)
-    print(f"\n  Report saved to: {output_path.relative_to(ROOT)}")
+    print(f"\n  Report saved to: {output_path.relative_to(ROOT).as_posix()}")
     print()
 
 

@@ -34,6 +34,38 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   agenda, no action items, more than three attendees — they exist to be
   witnessed). Footer: *"No meeting was held to review this report."*
 
+### Fixed
+
+- **Windows console encoding** — Classification labels contain an em-dash that
+  CP1252/CP437 terminals can't display, producing garbage output. Fixed by
+  calling `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` at
+  startup in both `audit_meeting.py` and `audit_all_meetings.py` when running
+  on Windows. Report files were already written with explicit `encoding="utf-8"`
+  and were unaffected.
+
+- **Slug collapse on punctuation** (`1:1` → `11`)  — `save_report()` stripped
+  punctuation characters before converting whitespace to underscores. Colons and
+  similar chars adjacent to digits were removed silently, merging tokens: `1:1`
+  became `11`. Fixed by replacing non-word characters with a space instead of
+  deleting them, so `1:1 Manager Check-In` → `1_1_manager_check_in_report.md`.
+
+- **Windows path separator in console output** — `Report saved to:` printed a
+  backslash-separated Windows path. Fixed by calling `.as_posix()` on the
+  relative path so output is consistently forward-slash on all platforms.
+
+- **`CLAUDE.md` incorrect interface description** — Key Workflow step 3 stated
+  the COBOL binary received parameters as "CLI args". The binary reads from
+  stdin. Updated to reflect the actual interface.
+
+- **`docs/windows-wsl-setup.md` outdated "Audit All" section** — Referenced a
+  manual shell loop (`for f in meetings/*.json; do ...`) that predates
+  `audit_all_meetings.py`. Replaced with `python3 python/audit_all_meetings.py`.
+
+- **`example.env` undocumented gap** — Listed environment variables
+  (`COBOL_BINARY_PATH`, `REPORTS_DIR`, `GUARDIAN_DEBUG`) as if they were active.
+  None are currently read by the Python scripts. Added "Planned" notes to each
+  variable so the file accurately describes their status.
+
 ### Planned
 - Machine-readable output mode (`--format json`)
 
