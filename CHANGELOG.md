@@ -163,6 +163,42 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **`python/audit_meeting.py` — `main()` exposes raw traceback on invalid
+  input** — If the meeting JSON was missing required fields, `audit_meeting_data()`
+  raised `ValueError` and `main()` had no handler, producing a raw Python
+  traceback on stderr. Added `try/except ValueError` around the
+  `audit_meeting_data()` call in `main()`: prints `ERROR: <message>` to
+  stderr and exits with code 1. Normal successful runs are unchanged.
+
+- **`python/audit_meeting.py` — `score_meeting()` inconsistent with
+  required-field validation** — `score_meeting()` used `.get("duration_minutes",
+  60)` and `.get("attendees", [])` with silent fallback defaults for fields
+  that `audit_meeting_data()` now guarantees are present. Since
+  `score_meeting()` is only reachable after validation passes, the defaults
+  were both unreachable and misleading. Replaced with direct key access
+  (`meeting["duration_minutes"]`, `meeting["attendees"]`); added a docstring
+  note that the function assumes pre-validated input. Optional fields
+  (`has_agenda`, `has_action_items`, `could_be_email`, `recurrence`) retain
+  their `.get()` defaults unchanged.
+
+- **`tests/test_audit.py` — unused `import shutil`** — `shutil` was imported
+  at module level but never used directly; the binary-missing mock references
+  `audit_meeting.shutil`, not the local name. Removed.
+
+- **`tests/test_audit.py` — no CLI error-handling coverage** — Added
+  `TestCliErrorHandling` (3 tests): invokes `audit_meeting.py` as a subprocess
+  with a JSON file missing `duration_minutes` and `attendees`; asserts exit
+  code 1, no `Traceback` in stderr, and that the error message names both
+  missing fields. Validation fires before `ensure_cobol_binary()` is reached,
+  so the tests do not require a compiled COBOL binary. Module docstring updated
+  to reflect that 2 of 33 tests (not 1 of 30) do not require `cobc`.
+
+- **`docs/architecture.md` — Python Layer description stale** — Responsibility
+  list did not reflect required-field validation, direct key access in
+  `score_meeting()`, or the `ValueError` → clean error path in `main()`.
+  Updated items 3, 4, and 7 (renumbered to 7 from the original 7); item 7
+  (CLI error handling) added as a new entry.
+
 - **`scripts/verify_demo.sh` unquoted `$PY` variable** — The Python
   interpreter variable was used unquoted in three places: the version
   check (`$($PY --version 2>&1)`), the single-audit invocation

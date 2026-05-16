@@ -126,10 +126,14 @@ def load_meeting(path: str) -> dict:
 
 
 def score_meeting(meeting: dict, bin_path: Path, wsl_prefix: list[str]) -> tuple[int, int]:
-    """Pipe meeting parameters to the COBOL binary and parse the two-line output."""
+    """Pipe meeting parameters to the COBOL binary and parse the two-line output.
+
+    Assumes duration_minutes and attendees are present; audit_meeting_data()
+    validates both before calling this function.
+    """
     stdin_data = "\n".join([
-        str(meeting.get("duration_minutes", 60)),
-        str(len(meeting.get("attendees", []))),
+        str(meeting["duration_minutes"]),
+        str(len(meeting["attendees"])),
         "1" if meeting.get("has_agenda", False) else "0",
         "1" if meeting.get("has_action_items", False) else "0",
         "1" if meeting.get("could_be_email", False) else "0",
@@ -264,7 +268,11 @@ def main() -> None:
         sys.exit(1)
 
     meeting = load_meeting(sys.argv[1])
-    result = audit_meeting_data(meeting)
+    try:
+        result = audit_meeting_data(meeting)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     width = 62
     print()

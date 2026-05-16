@@ -1,22 +1,25 @@
 """
-Pre-Hermes integration tests for audit_meeting_data().
+Pre-Hermes integration tests for audit_meeting_data() and the CLI.
 
 These tests verify that the agent tool boundary holds before any agent
 framework is wired in. They cover return structure, score bounds, formula
 correctness, classification/recommendation determinism, input validation,
-and graceful handling of a missing COBOL binary.
+graceful handling of a missing COBOL binary, and clean CLI error output.
 
-Runtime dependency: all test classes except TestCobolBinaryMissing call
-audit_meeting_data() against the real COBOL entropy engine. GnuCOBOL (cobc)
-must be installed, or the binary must already exist at cobol/entropy_engine.
-The Python wrapper compiles it automatically on first use; a clean run on a
-machine with cobc will compile once and cache the result for the session.
-TestCobolBinaryMissing mocks the binary away entirely and does not require cobc.
+Runtime dependency: all test classes except TestCobolBinaryMissing and
+TestCliErrorHandling call audit_meeting_data() against the real COBOL
+entropy engine. GnuCOBOL (cobc) must be installed, or the binary must
+already exist at cobol/entropy_engine. The Python wrapper compiles it
+automatically on first use; a clean run on a machine with cobc will compile
+once and cache the result for the session. TestCobolBinaryMissing mocks the
+binary away entirely; TestCliErrorHandling triggers validation failure before
+the binary is consulted. Neither requires cobc.
 
 Run with:  pytest tests/
 """
 
-import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -211,3 +214,57 @@ class TestCobolBinaryMissing:
 
         # Restore the cache so any tests that run after this can recompile cleanly.
         ensure_cobol_binary.cache_clear()
+
+
+# ── CLI error handling ────────────────────────────────────────────────────────
+
+class TestCliErrorHandling:
+    """Verify that main() surfaces ValueError as a readable message, not a traceback.
+
+    These tests invoke the CLI as a subprocess so they exercise the real entry
+    point, not just the Python API. Validation fires before ensure_cobol_binary()
+    is reached, so no COBOL binary is required.
+    """
+
+    _ROOT = Path(__file__).parent.parent
+
+    def test_missing_required_fields_exits_with_code_1(self, tmp_path):
+        bad_json = tmp_path / "bad_meeting.json"
+        bad_json.write_text('{"title": "No duration or attendees"}', encoding="utf-8")
+
+        result = subprocess.run(
+            [sys.executable, "python/audit_meeting.py", str(bad_json)],
+            capture_output=True,
+            text=True,
+            cwd=self._ROOT,
+        )
+
+        assert result.returncode == 1
+
+    def test_missing_required_fields_no_traceback(self, tmp_path):
+        bad_json = tmp_path / "bad_meeting.json"
+        bad_json.write_text('{"title": "No duration or attendees"}', encoding="utf-8")
+
+        result = subprocess.run(
+            [sys.executable, "python/audit_meeting.py", str(bad_json)],
+            capture_output=True,
+            text=True,
+            cwd=self._ROOT,
+        )
+
+        assert "Traceback" not in result.stderr
+
+    def test_missing_required_fields_error_message_names_fields(self, tmp_path):
+        bad_json = tmp_path / "bad_meeting.json"
+        bad_json.write_text('{"title": "No duration or attendees"}', encoding="utf-8")
+
+        result = subprocess.run(
+            [sys.executable, "python/audit_meeting.py", str(bad_json)],
+            capture_output=True,
+            text=True,
+            cwd=self._ROOT,
+        )
+
+        assert "ERROR" in result.stderr
+        assert "duration_minutes" in result.stderr
+        assert "attendees" in result.stderr

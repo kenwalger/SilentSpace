@@ -101,13 +101,14 @@ Entry point and agent-callable interface. Responsibilities:
 
 1. **Auto-compilation** — compiles `entropy_engine.cob` on first run if binary is absent
 2. **JSON loading** — reads the meeting file from the given path (`load_meeting`)
-3. **Agent interface** — `audit_meeting_data(meeting, memory_context=None) -> dict` accepts a meeting dict directly, runs the full scoring pipeline, and returns a structured result; no file I/O required
-4. **Parameter extraction** — maps JSON fields to 6 stdin values for the COBOL binary
+3. **Agent interface** — `audit_meeting_data(meeting, memory_context=None) -> dict` accepts a meeting dict directly, validates required fields (`title`, `duration_minutes`, `attendees`), runs the full scoring pipeline, and returns a structured result; no file I/O required. Raises `ValueError` listing all missing fields if any required field is absent.
+4. **Parameter extraction** — maps JSON fields to 6 stdin values for the COBOL binary; required fields use direct key access, optional fields (`has_agenda`, `has_action_items`, `could_be_email`, `recurrence`) use safe defaults
 5. **Subprocess call** — invokes the COBOL binary, pipes parameters via stdin, captures stdout
 6. **Output parsing** — reads two integer lines from stdout
-7. **Printing** — formatted console summary (CLI path only)
-8. **Report generation** — calls `classify.py`, assembles Markdown
-9. **File write** — saves to `reports/<slug>_report.md` (CLI path only)
+7. **CLI error handling** — `main()` catches `ValueError` from `audit_meeting_data()` and prints a readable `ERROR:` message to stderr before exiting with code 1; no raw traceback is shown to the user
+8. **Printing** — formatted console summary (CLI path only)
+9. **Report generation** — calls `classify.py`, assembles Markdown
+10. **File write** — saves to `reports/<slug>_report.md` (CLI path only)
 
 ### `python/classify.py`
 
