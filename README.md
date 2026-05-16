@@ -88,7 +88,7 @@ silentspace-guardian/
 ├── .env                       # Local env overrides — gitignored
 ├── .gitignore
 ├── example.env                # Committed env variable reference
-├── ARCHITECTURE.md            # Visual architecture with Mermaid.js diagrams
+├── ARCHITECTURE.md            # Architecture signpost — three-layer summary, links to docs/
 ├── CHANGELOG.md
 ├── CLAUDE.md                  # Claude Code operational guide
 ├── CODE_OF_CONDUCT.md
@@ -101,6 +101,7 @@ silentspace-guardian/
 ├── docs/
 │   ├── architecture.md        # Prose architecture, scoring formula, agent boundary
 │   ├── memory_model.md        # Memory planning doc for future Hermes integration
+│   ├── scoring_model.md       # COBOL engine inputs, outputs, and formula rationale
 │   └── windows-wsl-setup.md  # Beginner setup guide for Windows + WSL2
 ├── meetings/                  # 12 mocked meeting JSON files
 ├── memory/
@@ -117,7 +118,11 @@ silentspace-guardian/
 ## Architecture
 
 See [docs/architecture.md](docs/architecture.md) for the full technical breakdown,
-including the COBOL scoring formula and meeting JSON schema.
+including the agent tool boundary, meeting JSON schema, and constraint rationale.
+
+See [docs/scoring_model.md](docs/scoring_model.md) for the COBOL engine reference:
+inputs, outputs, formula rationale, and the intentional design of the stdin/stdout
+interface.
 
 ---
 

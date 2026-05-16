@@ -6,9 +6,9 @@
       {
         "audited_at": "2025-11-01",
         "waste_score": 96,
-        "necessity_prob": 4,
-        "classification": "Corporate Heat Death Event: Entropy Made Flesh",
-        "recommendation": "Cancel immediately. Send a Slack summary of what was going to be discussed.",
+        "necessity_prob": 5,
+        "classification": "Corporate Heat Death Event: Entropy Made Flesh — This meeting is why people quit.",
+        "recommendation": "Declare a calendar emergency. Block this timeslot for silent, focused work.",
         "snapshot": {
           "duration_minutes": 60,
           "attendee_count": 8,
@@ -22,8 +22,8 @@
         "audited_at": "2026-02-15",
         "waste_score": 94,
         "necessity_prob": 6,
-        "classification": "Corporate Heat Death Event: Entropy Made Flesh",
-        "recommendation": "Cancel immediately. Send a Slack summary of what was going to be discussed.",
+        "classification": "Corporate Heat Death Event: Entropy Made Flesh — This meeting is why people quit.",
+        "recommendation": "Declare a calendar emergency. Block this timeslot for silent, focused work.",
         "snapshot": {
           "duration_minutes": 60,
           "attendee_count": 7,
@@ -37,7 +37,7 @@
         "audited_at": "2026-05-15",
         "waste_score": 92,
         "necessity_prob": 8,
-        "classification": "Corporate Heat Death Event: Entropy Made Flesh",
+        "classification": "Corporate Heat Death Event: Entropy Made Flesh — This meeting is why people quit.",
         "recommendation": "Declare a calendar emergency. Block this timeslot for silent, focused work.",
         "snapshot": {
           "duration_minutes": 60,
@@ -57,10 +57,10 @@
     "audit_history": [
       {
         "audited_at": "2025-11-01",
-        "waste_score": 65,
-        "necessity_prob": 35,
-        "classification": "Meeting-Shaped Void: Time's Natural Enemy",
-        "recommendation": "Convert to a monthly cadence and replace interim slots with a status doc.",
+        "waste_score": 63,
+        "necessity_prob": 37,
+        "classification": "Meeting-Shaped Void: Time's Natural Enemy — Cancel with prejudice.",
+        "recommendation": "Recommend the organizer complete an async communication fundamentals module.",
         "snapshot": {
           "duration_minutes": 30,
           "attendee_count": 7,
@@ -72,10 +72,10 @@
       },
       {
         "audited_at": "2026-05-15",
-        "waste_score": 60,
-        "necessity_prob": 40,
-        "classification": "Calendar Debris: Occupies Space, Creates Little",
-        "recommendation": "Implement a 15-minute stand-up and redirect the remaining time to actual work.",
+        "waste_score": 63,
+        "necessity_prob": 37,
+        "classification": "Meeting-Shaped Void: Time's Natural Enemy — Cancel with prejudice.",
+        "recommendation": "Recommend the organizer complete an async communication fundamentals module.",
         "snapshot": {
           "duration_minutes": 15,
           "attendee_count": 7,
@@ -86,7 +86,7 @@
         }
       }
     ],
-    "notes": "Duration reduced from 30 minutes to 15 minutes between audits. Score improved by 5 points and classification improved by one tier. The standup still has no agenda, which continues to inflate the score. Structural improvement is real but incomplete."
+    "notes": "Duration was reduced from 30 to 15 minutes between audits. The score did not change. The duration drag penalty only applies above 30 minutes, so both values fall below the threshold and contribute identically: zero. The primary drivers — daily recurrence (+20), no agenda (+15), and attendee bloat (+8) — were untouched. Structural improvement requires addressing those, not shortening a meeting that was already at the floor."
   },
   {
     "meeting_id": "incident_postmortem",
@@ -96,7 +96,7 @@
         "audited_at": "2026-05-15",
         "waste_score": 28,
         "necessity_prob": 72,
-        "classification": "Marginally Justified: Could Be a Loom",
+        "classification": "Marginally Justified: Could Be a Loom — We appreciate the effort.",
         "recommendation": "Create a shared doc with a comment thread. Enables async debate about the agenda.",
         "snapshot": {
           "duration_minutes": 60,
@@ -118,7 +118,7 @@
         "audited_at": "2026-03-01",
         "waste_score": 100,
         "necessity_prob": 5,
-        "classification": "Corporate Heat Death Event: Entropy Made Flesh",
+        "classification": "Corporate Heat Death Event: Entropy Made Flesh — This meeting is why people quit.",
         "recommendation": "This meeting should be studied, not attended. Forward to anthropology departments.",
         "snapshot": {
           "duration_minutes": 90,
@@ -133,7 +133,7 @@
         "audited_at": "2026-05-15",
         "waste_score": 100,
         "necessity_prob": 5,
-        "classification": "Corporate Heat Death Event: Entropy Made Flesh",
+        "classification": "Corporate Heat Death Event: Entropy Made Flesh — This meeting is why people quit.",
         "recommendation": "Cancel and initiate a post-mortem on how this ended up on six calendars.",
         "snapshot": {
           "duration_minutes": 90,
@@ -145,7 +145,7 @@
         }
       }
     ],
-    "notes": "Score is 100 across both audits. No parameters changed between audits. The organizer has left the company. The meeting persists. This is the canonical entropy event."
+    "notes": "Score is 100 across both audits. No parameters changed between audits. The uncapped formula yields 106; the cap absorbs 6 points of additional entropy that has nowhere to go. The organizer has left the company. The meeting persists. This is the canonical entropy event."
   },
   {
     "meeting_id": "product_roadmap_brainstorm",
@@ -153,10 +153,10 @@
     "audit_history": [
       {
         "audited_at": "2025-11-01",
-        "waste_score": 50,
-        "necessity_prob": 50,
-        "classification": "Calendar Debris: Occupies Space, Creates Little",
-        "recommendation": "Post a weekly update doc. Ask for thumbs-up reactions, not attendance confirmation.",
+        "waste_score": 62,
+        "necessity_prob": 38,
+        "classification": "Meeting-Shaped Void: Time's Natural Enemy — Cancel with prejudice.",
+        "recommendation": "Recommend the organizer complete an async communication fundamentals module.",
         "snapshot": {
           "duration_minutes": 60,
           "attendee_count": 6,
@@ -170,7 +170,7 @@
         "audited_at": "2026-05-15",
         "waste_score": 35,
         "necessity_prob": 65,
-        "classification": "Marginally Justified: Could Be a Loom",
+        "classification": "Marginally Justified: Could Be a Loom — We appreciate the effort.",
         "recommendation": "Record a Loom video. Recipients will watch at 1.75x speed with their cameras off.",
         "snapshot": {
           "duration_minutes": 60,
@@ -182,6 +182,6 @@
         }
       }
     ],
-    "notes": "Agenda and action items added between audits. Score improved by 15 points. Classification improved by one tier. This is the strongest reform trajectory in the corpus. Still monthly, which limits the ongoing cost."
+    "notes": "Agenda and action items added between audits. One attendee removed. Score dropped by 27 points and classification improved by two tiers. The strongest reform trajectory in the corpus. Adding agenda (+15 recovered) and action items (+10 recovered) accounts for 25 of the 27 point improvement; the attendee reduction accounts for the remaining 2."
   }
 ]
