@@ -3,21 +3,23 @@ Pre-Hermes integration tests for audit_meeting_data() and the CLI.
 
 These tests verify that the agent tool boundary holds before any agent
 framework is wired in. They cover return structure, score bounds, formula
-correctness, classification/recommendation determinism, input validation,
-graceful handling of a missing COBOL binary, and clean CLI error output.
+correctness, classification/recommendation determinism, input validation
+(presence, type, and shape), graceful handling of a missing COBOL binary,
+clean CLI error output, and schema conformance of all committed meeting files.
 
-Runtime dependency: all test classes except TestCobolBinaryMissing and
-TestCliErrorHandling call audit_meeting_data() against the real COBOL
-entropy engine. GnuCOBOL (cobc) must be installed, or the binary must
-already exist at cobol/entropy_engine. The Python wrapper compiles it
-automatically on first use; a clean run on a machine with cobc will compile
-once and cache the result for the session. TestCobolBinaryMissing mocks the
-binary away entirely; TestCliErrorHandling triggers validation failure before
-the binary is consulted. Neither requires cobc.
+Runtime dependency: 25 of 59 tests call audit_meeting_data() or score_meeting()
+against the real COBOL entropy engine. GnuCOBOL (cobc) must be installed, or
+the binary must already exist at cobol/entropy_engine. The Python wrapper
+compiles it automatically on first use; a clean run on a machine with cobc will
+compile once and cache the result for the session. The remaining 34 tests
+(TestCobolBinaryMissing, TestCliErrorHandling, TestRealMeetingFiles, and all
+TestInputValidation cases that raise before the binary is consulted) require no
+COBOL binary.
 
-Run with:  pytest tests/
+Run with:  pytest tests/ -p no:celery
 """
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -159,6 +161,7 @@ class TestClassificationAndRecommendation:
 # ── Input validation ──────────────────────────────────────────────────────────
 
 class TestInputValidation:
+    # Required-field presence
     def test_missing_title_raises_valueerror(self, meeting):
         del meeting["title"]
         with pytest.raises(ValueError, match="title"):
@@ -181,6 +184,79 @@ class TestInputValidation:
         for field in ("title", "duration_minutes", "attendees"):
             assert field in msg, f"Expected {field!r} in error message: {msg!r}"
 
+    # Title type/shape
+    def test_title_empty_string_raises_valueerror(self, meeting):
+        meeting["title"] = ""
+        with pytest.raises(ValueError, match="title"):
+            audit_meeting_data(meeting)
+
+    def test_title_whitespace_only_raises_valueerror(self, meeting):
+        meeting["title"] = "   "
+        with pytest.raises(ValueError, match="title"):
+            audit_meeting_data(meeting)
+
+    def test_title_wrong_type_raises_valueerror(self, meeting):
+        meeting["title"] = 42
+        with pytest.raises(ValueError, match="title"):
+            audit_meeting_data(meeting)
+
+    # duration_minutes type/shape
+    def test_duration_none_raises_valueerror(self, meeting):
+        meeting["duration_minutes"] = None
+        with pytest.raises(ValueError, match="duration_minutes"):
+            audit_meeting_data(meeting)
+
+    def test_duration_string_raises_valueerror(self, meeting):
+        meeting["duration_minutes"] = "60"
+        with pytest.raises(ValueError, match="duration_minutes"):
+            audit_meeting_data(meeting)
+
+    def test_duration_zero_raises_valueerror(self, meeting):
+        meeting["duration_minutes"] = 0
+        with pytest.raises(ValueError, match="duration_minutes"):
+            audit_meeting_data(meeting)
+
+    def test_duration_negative_raises_valueerror(self, meeting):
+        meeting["duration_minutes"] = -30
+        with pytest.raises(ValueError, match="duration_minutes"):
+            audit_meeting_data(meeting)
+
+    def test_duration_bool_raises_valueerror(self, meeting):
+        # bool is a subclass of int in Python; True would otherwise pass int check
+        meeting["duration_minutes"] = True
+        with pytest.raises(ValueError, match="duration_minutes"):
+            audit_meeting_data(meeting)
+
+    # attendees type/shape
+    def test_attendees_none_raises_valueerror(self, meeting):
+        meeting["attendees"] = None
+        with pytest.raises(ValueError, match="attendees"):
+            audit_meeting_data(meeting)
+
+    def test_attendees_wrong_type_raises_valueerror(self, meeting):
+        meeting["attendees"] = "Alice, Bob"
+        with pytest.raises(ValueError, match="attendees"):
+            audit_meeting_data(meeting)
+
+    def test_attendees_empty_list_raises_valueerror(self, meeting):
+        meeting["attendees"] = []
+        with pytest.raises(ValueError, match="attendees"):
+            audit_meeting_data(meeting)
+
+    # Optional boolean fields
+    @pytest.mark.parametrize("bool_field", ["has_agenda", "has_action_items", "could_be_email"])
+    def test_optional_bool_wrong_type_raises_valueerror(self, meeting, bool_field):
+        meeting[bool_field] = "yes"
+        with pytest.raises(ValueError, match=bool_field):
+            audit_meeting_data(meeting)
+
+    # Optional recurrence
+    def test_recurrence_unknown_value_raises_valueerror(self, meeting):
+        meeting["recurrence"] = "fortnightly"
+        with pytest.raises(ValueError, match="recurrence"):
+            audit_meeting_data(meeting)
+
+    # Optional fields absent — should use defaults, not raise
     @pytest.mark.parametrize("optional_field", [
         "has_agenda", "has_action_items", "could_be_email",
         "recurrence", "organizer", "description",
@@ -219,7 +295,7 @@ class TestCobolBinaryMissing:
 # ── CLI error handling ────────────────────────────────────────────────────────
 
 class TestCliErrorHandling:
-    """Verify that main() surfaces ValueError as a readable message, not a traceback.
+    """Verify that main() surfaces validation errors as readable messages, not tracebacks.
 
     These tests invoke the CLI as a subprocess so they exercise the real entry
     point, not just the Python API. Validation fires before ensure_cobol_binary()
@@ -228,7 +304,7 @@ class TestCliErrorHandling:
 
     _ROOT = Path(__file__).parent.parent
 
-    def test_missing_required_fields_exits_with_code_1(self, tmp_path):
+    def test_missing_required_fields_clean_error(self, tmp_path):
         bad_json = tmp_path / "bad_meeting.json"
         bad_json.write_text('{"title": "No duration or attendees"}', encoding="utf-8")
 
@@ -240,31 +316,45 @@ class TestCliErrorHandling:
         )
 
         assert result.returncode == 1
-
-    def test_missing_required_fields_no_traceback(self, tmp_path):
-        bad_json = tmp_path / "bad_meeting.json"
-        bad_json.write_text('{"title": "No duration or attendees"}', encoding="utf-8")
-
-        result = subprocess.run(
-            [sys.executable, "python/audit_meeting.py", str(bad_json)],
-            capture_output=True,
-            text=True,
-            cwd=self._ROOT,
-        )
-
         assert "Traceback" not in result.stderr
-
-    def test_missing_required_fields_error_message_names_fields(self, tmp_path):
-        bad_json = tmp_path / "bad_meeting.json"
-        bad_json.write_text('{"title": "No duration or attendees"}', encoding="utf-8")
-
-        result = subprocess.run(
-            [sys.executable, "python/audit_meeting.py", str(bad_json)],
-            capture_output=True,
-            text=True,
-            cwd=self._ROOT,
-        )
-
         assert "ERROR" in result.stderr
         assert "duration_minutes" in result.stderr
         assert "attendees" in result.stderr
+
+    def test_invalid_field_type_clean_error(self, tmp_path):
+        bad_json = tmp_path / "bad_meeting.json"
+        bad_json.write_text(
+            '{"title": "Null Attendees", "duration_minutes": 60, "attendees": null}',
+            encoding="utf-8",
+        )
+
+        result = subprocess.run(
+            [sys.executable, "python/audit_meeting.py", str(bad_json)],
+            capture_output=True,
+            text=True,
+            cwd=self._ROOT,
+        )
+
+        assert result.returncode == 1
+        assert "Traceback" not in result.stderr
+        assert "ERROR" in result.stderr
+        assert "attendees" in result.stderr
+
+
+# ── Real meeting files ────────────────────────────────────────────────────────
+
+_MEETINGS_DIR = Path(__file__).parent.parent / "meetings"
+_MEETING_FILES = sorted(_MEETINGS_DIR.glob("*.json"))
+
+
+class TestRealMeetingFiles:
+    """Verify that every committed meeting file passes schema validation.
+
+    Calls _validate_meeting() directly — no COBOL binary required.
+    """
+
+    @pytest.mark.parametrize("meeting_path", _MEETING_FILES, ids=[p.stem for p in _MEETING_FILES])
+    def test_real_meeting_passes_validation(self, meeting_path):
+        with open(meeting_path, encoding="utf-8") as f:
+            meeting = json.load(f)
+        audit_meeting._validate_meeting(meeting)

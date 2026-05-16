@@ -314,6 +314,43 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   None are currently read by the Python scripts. Added "Planned" notes to each
   variable so the file accurately describes their status.
 
+- **`python/audit_meeting.py` — validation accepts `{"attendees": null}`** —
+  `_REQUIRED_FIELDS` presence check confirmed the key existed but did not inspect
+  the value. A meeting like `{"attendees": null}` passed validation, then caused
+  an unhandled `TypeError` (`len(None)`) inside `score_meeting()`, producing a
+  raw traceback in the CLI — exactly the failure mode that the `ValueError` catch
+  was meant to prevent. Fixed by extracting `_validate_meeting(meeting)` with
+  full type and shape checks: `title` must be a non-empty string; `duration_minutes`
+  must be a positive integer (bool excluded, since `bool` is a subclass of `int`);
+  `attendees` must be a non-empty list; optional boolean fields must be `bool` if
+  present; `recurrence` must be a known level if present. All errors are collected
+  before raising so the caller sees the full problem list in one `ValueError`.
+  `audit_meeting_data()` now calls `_validate_meeting()` instead of the inline
+  presence-only check. The `main()` try/except is expanded to also wrap
+  `load_meeting()` and covers `OSError` so file-not-found errors also produce a
+  clean `ERROR:` message instead of a traceback.
+
+- **`tests/test_audit.py` — insufficient type/shape coverage** — `TestInputValidation`
+  previously tested only missing-field presence (3 cases) and optional-field
+  defaults (6 parametrized cases). Added 15 new type/shape tests: empty and
+  whitespace-only title, wrong-type title; `None`, string, zero, negative, and
+  `bool` duration; `None`, wrong-type, and empty-list attendees; wrong-type
+  optional booleans (3 parametrized); unknown recurrence string. Consolidated
+  `TestCliErrorHandling` from 3 separate subprocess invocations (same file, same
+  command, three assertions) into 1 combined test, and added a second CLI test
+  for `{"attendees": null}` to exercise the new type validation through the
+  real entry point. Added `TestRealMeetingFiles`: parametrized over all 12
+  committed meeting JSON files, calls `_validate_meeting()` directly (no COBOL
+  binary required), verifies that every shipped fixture passes the new schema
+  rules. Test total: 33 → 59. Tests not requiring the COBOL binary: 2 → 34.
+
+- **`docs/architecture.md` — Python Layer description stale** — Responsibility
+  list did not reflect `_validate_meeting()` or the expanded error scope in
+  `main()`. Item 3 (agent interface) now mentions delegation to `_validate_meeting()`.
+  Item 4 is a new entry documenting `_validate_meeting()` type/shape rules.
+  Remaining items renumbered (5–11). Item 8 (formerly item 7, CLI error handling)
+  updated to mention `OSError` coverage and `load_meeting()` scope.
+
 ---
 
 ## [0.1.0] — 2026-05-15

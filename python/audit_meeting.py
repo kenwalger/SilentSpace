@@ -46,6 +46,48 @@ RECURRENCE_LEVELS = {
 _REQUIRED_FIELDS = ("title", "duration_minutes", "attendees")
 
 
+def _validate_meeting(meeting: dict) -> None:
+    """Validate meeting dict type and shape. Raises ValueError listing all problems."""
+    errors: list[str] = []
+
+    title = meeting.get("title")
+    if title is None:
+        errors.append("title: required field is missing")
+    elif not isinstance(title, str):
+        errors.append(f"title: must be a string, got {type(title).__name__}")
+    elif not title.strip():
+        errors.append("title: must be a non-empty string")
+
+    duration = meeting.get("duration_minutes")
+    if duration is None:
+        errors.append("duration_minutes: required field is missing")
+    elif isinstance(duration, bool) or not isinstance(duration, int):
+        errors.append(f"duration_minutes: must be an integer, got {type(duration).__name__}")
+    elif duration <= 0:
+        errors.append(f"duration_minutes: must be positive, got {duration}")
+
+    attendees = meeting.get("attendees")
+    if attendees is None:
+        errors.append("attendees: required field is missing")
+    elif not isinstance(attendees, list):
+        errors.append(f"attendees: must be a list, got {type(attendees).__name__}")
+    elif len(attendees) == 0:
+        errors.append("attendees: must contain at least one attendee")
+
+    for bool_field in ("has_agenda", "has_action_items", "could_be_email"):
+        val = meeting.get(bool_field)
+        if val is not None and not isinstance(val, bool):
+            errors.append(f"{bool_field}: must be a boolean, got {type(val).__name__}")
+
+    recurrence = meeting.get("recurrence")
+    if recurrence is not None and recurrence not in RECURRENCE_LEVELS:
+        valid = ", ".join(f'"{k}"' for k in RECURRENCE_LEVELS)
+        errors.append(f'recurrence: unknown value "{recurrence}"; must be one of {valid}')
+
+    if errors:
+        raise ValueError("Invalid meeting data:\n  " + "\n  ".join(errors))
+
+
 def _to_wsl_path(p: Path) -> str:
     """Convert a Windows absolute path to its WSL /mnt/ equivalent."""
     s = str(p)
@@ -176,11 +218,7 @@ def audit_meeting_data(
             "meeting": dict,
         }
     """
-    missing = [f for f in _REQUIRED_FIELDS if f not in meeting]
-    if missing:
-        raise ValueError(
-            "Meeting dict is missing required fields: " + ", ".join(missing)
-        )
+    _validate_meeting(meeting)
     bin_path, wsl_prefix = ensure_cobol_binary()
     waste_score, necessity_prob = score_meeting(meeting, bin_path, wsl_prefix)
     classification = classify_meeting(waste_score)
@@ -267,10 +305,10 @@ def main() -> None:
         print("Usage: python audit_meeting.py <meeting.json>", file=sys.stderr)
         sys.exit(1)
 
-    meeting = load_meeting(sys.argv[1])
     try:
+        meeting = load_meeting(sys.argv[1])
         result = audit_meeting_data(meeting)
-    except ValueError as exc:
+    except (ValueError, OSError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
 
