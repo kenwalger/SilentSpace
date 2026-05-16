@@ -11,6 +11,10 @@ No meeting is safe. Especially yours.
 
 > "Because modern LLMs are too polite to tell your manager that a 12-person daily sync is a crime against engineering velocity, we outsourced the judgment to legacy mainframes."
 
+SilentSpace is a local-first AI meeting audit system that uses Hermes Agent Runtime to normalize unstructured human communication into deterministic scoring inputs for a compiled COBOL entropy engine.
+
+The result is a fully automated organizational entropy pipeline capable of classifying meetings, generating markdown audit reports, and identifying corporate communication patterns that could have been emails.
+
 ---
 
 ## Quick Start
@@ -163,6 +167,18 @@ including the agent tool boundary, meeting JSON schema, and constraint rationale
 See [docs/scoring_model.md](docs/scoring_model.md) for the COBOL engine reference:
 inputs, outputs, formula rationale, and the intentional design of the stdin/stdout
 interface.
+
+### Why COBOL?
+
+Because deterministic systems still matter.
+
+SilentSpace intentionally separates:
+- probabilistic language reasoning (Hermes + LLMs)
+from:
+- deterministic scoring logic (GnuCOBOL).
+
+The joke eventually became an architecture pattern.
+
 
 ---
 

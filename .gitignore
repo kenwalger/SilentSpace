@@ -47,3 +47,6 @@ commit-message.txt
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# -- Content ----
+content_assets/
