@@ -296,6 +296,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-[Unreleased]: https://github.com/kenwalger/silentspace-guardian/compare/v0.2.0-dev...HEAD
-[0.2.0-dev]: https://github.com/kenwalger/silentspace-guardian/compare/v0.1.0...v0.2.0-dev
-[0.1.0]: https://github.com/kenwalger/silentspace-guardian/releases/tag/v0.1.0
+[Unreleased]: https://github.com/kenwalger/silentspace-guardian/commits/main
+[0.2.0-dev]: https://github.com/kenwalger/silentspace-guardian/compare/8f340da...main
+[0.1.0]: https://github.com/kenwalger/silentspace-guardian/commit/8f340da

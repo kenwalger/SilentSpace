@@ -49,6 +49,21 @@ stats, verdict breakdown, top offenders, and most common failure mode.
 python python/audit_meeting.py meetings/weekly_alignment_sync.json
 ```
 
+### Verify the Full Demo
+
+Run the verification script to confirm compilation, scoring, and report generation all work end-to-end:
+
+```bash
+bash scripts/verify_demo.sh
+```
+
+The script compiles the COBOL engine (if `cobc` is available), audits one meeting, runs the full batch, and confirms all reports were written. On Windows, run from Git Bash or WSL. Expected output ends with:
+
+```
+==========================================
+All 8 checks passed. The demo is ready.
+```
+
 ---
 
 ## What It Does
@@ -103,7 +118,9 @@ silentspace-guardian/
 │   ├── memory_model.md        # Memory planning doc for future Hermes integration
 │   ├── scoring_model.md       # COBOL engine inputs, outputs, and formula rationale
 │   └── windows-wsl-setup.md  # Beginner setup guide for Windows + WSL2
-├── meetings/                  # 12 mocked meeting JSON files
+├── meetings/                  # Mocked meeting JSON files
+├── scripts/
+│   └── verify_demo.sh         # End-to-end verification script
 ├── memory/
 │   └── sample_meeting_history.json  # Sample prior-audit data (scaffolding)
 ├── python/
