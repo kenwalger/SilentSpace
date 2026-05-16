@@ -325,7 +325,7 @@ sequenceDiagram
     Note left of cobol: waste=92, necessity=8
 
     audit->>classify: classify_meeting(92)
-    classify-->>audit: "Corporate Heat Death Event: Entropy Made Flesh"
+    classify-->>audit: "Corporate Heat Death Event: Entropy Made Flesh — This meeting is why people quit."
 
     audit->>classify: async_recommendation(meeting, 92)
     classify-->>audit: "Cancel and initiate a post-mortem on how this ended up on six calendars."

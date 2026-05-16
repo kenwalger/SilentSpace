@@ -9,6 +9,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Planned
+
+- Machine-readable output mode (`--format json`)
+- `memory_context` consumed by scoring (longitudinal recurrence penalty,
+  trend-aware recommendation text)
+- `memory/meeting_history.json` written back after each audit
+- `memory/USER.md` user preference file
+
+---
+
+## [0.2.0-dev] — 2026-05-15
+
 ### Added
 
 - `python/audit_all_meetings.py` — Batch auditor. Scores every JSON file in
@@ -162,6 +174,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `ModuleNotFoundError` because `audit_meeting.py` imports `classify` from
   its own directory; corrected to include `sys.path.insert(0, "python")`.
 
+- **`docs/architecture.md` stale sequence diagram label** — Diagram 3 showed
+  the short `classify.py` return value without the em-dash subheading:
+  `"Corporate Heat Death Event: Entropy Made Flesh"`. Corrected to the full
+  string: `"Corporate Heat Death Event: Entropy Made Flesh — This meeting is
+  why people quit."` Trailing newline also added to end of file.
+
 - **`docs/windows-wsl-setup.md` outdated "Audit All" section** — Referenced a
   manual shell loop (`for f in meetings/*.json; do ...`) that predates
   `audit_all_meetings.py`. Replaced with `python3 python/audit_all_meetings.py`.
@@ -170,14 +188,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   (`COBOL_BINARY_PATH`, `REPORTS_DIR`, `GUARDIAN_DEBUG`) as if they were active.
   None are currently read by the Python scripts. Added "Planned" notes to each
   variable so the file accurately describes their status.
-
-### Planned
-
-- Machine-readable output mode (`--format json`)
-- `memory_context` consumed by scoring (longitudinal recurrence penalty,
-  trend-aware recommendation text)
-- `memory/meeting_history.json` written back after each audit
-- `memory/USER.md` user preference file
 
 ---
 
@@ -286,5 +296,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-[Unreleased]: https://github.com/kenwalger/silentspace-guardian/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kenwalger/silentspace-guardian/compare/v0.2.0-dev...HEAD
+[0.2.0-dev]: https://github.com/kenwalger/silentspace-guardian/compare/v0.1.0...v0.2.0-dev
 [0.1.0]: https://github.com/kenwalger/silentspace-guardian/releases/tag/v0.1.0
