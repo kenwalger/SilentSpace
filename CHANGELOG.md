@@ -9,7 +9,38 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Planned
+
+- Machine-readable output mode (`--format json`)
+- `memory_context` consumed by scoring (longitudinal recurrence penalty,
+  trend-aware recommendation text)
+- `memory/meeting_history.json` written back after each audit
+- `memory/USER.md` user preference file
+
+---
+
+## [0.2.0-dev] — 2026-05-15
+
 ### Added
+
+- `tests/conftest.py` and `tests/test_audit.py` — pre-Hermes test suite.
+  Tests the `audit_meeting_data()` agent tool boundary before any agent
+  framework is wired in. Coverage: return structure (all six keys present,
+  meeting dict passed through); score bounds (waste_score 0–100,
+  necessity_prob 5–100); formula correctness (`necessity_prob = max(5,
+  100 − waste_score)`, cap verified at 100, floor at 5); classification
+  and recommendation determinism (same input → same output); input
+  validation (ValueError on missing title / duration_minutes / attendees,
+  error message lists all missing fields); optional field defaults
+  (parametrized across has_agenda, has_action_items, could_be_email,
+  recurrence, organizer, description); COBOL binary missing (monkeypatches
+  binary paths and shutil.which, asserts SystemExit code 1, clears LRU
+  cache before and after to avoid test pollution). Run with: pytest tests/
+
+- `scripts/verify_demo.sh` — end-to-end demo verification script. Five
+  steps: prerequisites, COBOL compilation, single meeting audit, batch
+  audit, report file checks. On all passes: exit 0, "All N checks passed."
+  On any failure: exit 1, failing check listed. See also: Changed below.
 
 - `python/audit_all_meetings.py` — Batch auditor. Scores every JSON file in
   `meetings/`, writes individual Markdown reports to `reports/`, and produces
@@ -59,6 +90,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
+- **`scripts/verify_demo.sh` — platform-aware cobc handling** — The prior
+  version passed the "missing cobc" check on all platforms ("Python will
+  auto-compile via WSL"). This was only correct on Windows/Git Bash where
+  the Python wrapper provides WSL auto-compilation as a supported fallback.
+  On Linux, macOS, and WSL, missing cobc is a real failure that blocks the
+  pipeline. Fixed: platform is now detected at startup (MSYSTEM / OSTYPE for
+  Git Bash; /proc/version for WSL; uname for macOS; Linux as default). On
+  Windows, missing cobc still passes with the auto-compile note. On
+  Linux/WSL, missing cobc fails with `sudo apt install gnucobol`. On macOS,
+  with `brew install gnu-cobol`. PASS is not incremented for the pass-through
+  note — the check passes because the fallback is real, not because the tool
+  is missing. Also: meeting and report file counting now uses `find -print0`
+  piped to `read -d ''` instead of glob expansion, correctly handling empty
+  directories without the literal-pattern fallback. Single-audit failure
+  message now explicitly says "COBOL binary not compiled" when the binary
+  is absent, rather than a generic error.
+
+- **`python/audit_meeting.py` — required-field validation in
+  `audit_meeting_data()`** — The function previously used `.get()` with
+  defaults for all fields, silently scoring meetings with missing
+  `duration_minutes` as 60 minutes and missing `attendees` as zero. Added
+  `_REQUIRED_FIELDS = ("title", "duration_minutes", "attendees")` guard:
+  `ValueError` is raised listing all absent required fields if any are
+  missing. Optional fields (has_agenda, has_action_items, could_be_email,
+  recurrence, organizer, description) retain their defaults.
+
 - **`ARCHITECTURE.md` restructured as a signpost** — The root file previously
   held 225 lines of Mermaid diagrams, duplicating the role of `docs/architecture.md`
   and creating ambiguity about which file was authoritative. Replaced with a
@@ -105,6 +162,86 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   was held to review this report."*
 
 ### Fixed
+
+- **`python/audit_meeting.py` — `main()` exposes raw traceback on invalid
+  input** — If the meeting JSON was missing required fields, `audit_meeting_data()`
+  raised `ValueError` and `main()` had no handler, producing a raw Python
+  traceback on stderr. Added `try/except ValueError` around the
+  `audit_meeting_data()` call in `main()`: prints `ERROR: <message>` to
+  stderr and exits with code 1. Normal successful runs are unchanged.
+
+- **`python/audit_meeting.py` — `score_meeting()` inconsistent with
+  required-field validation** — `score_meeting()` used `.get("duration_minutes",
+  60)` and `.get("attendees", [])` with silent fallback defaults for fields
+  that `audit_meeting_data()` now guarantees are present. Since
+  `score_meeting()` is only reachable after validation passes, the defaults
+  were both unreachable and misleading. Replaced with direct key access
+  (`meeting["duration_minutes"]`, `meeting["attendees"]`); added a docstring
+  note that the function assumes pre-validated input. Optional fields
+  (`has_agenda`, `has_action_items`, `could_be_email`, `recurrence`) retain
+  their `.get()` defaults unchanged.
+
+- **`tests/test_audit.py` — unused `import shutil`** — `shutil` was imported
+  at module level but never used directly; the binary-missing mock references
+  `audit_meeting.shutil`, not the local name. Removed.
+
+- **`tests/test_audit.py` — no CLI error-handling coverage** — Added
+  `TestCliErrorHandling` (3 tests): invokes `audit_meeting.py` as a subprocess
+  with a JSON file missing `duration_minutes` and `attendees`; asserts exit
+  code 1, no `Traceback` in stderr, and that the error message names both
+  missing fields. Validation fires before `ensure_cobol_binary()` is reached,
+  so the tests do not require a compiled COBOL binary. Module docstring updated
+  to reflect that 2 of 33 tests (not 1 of 30) do not require `cobc`.
+
+- **`docs/architecture.md` — Python Layer description stale** — Responsibility
+  list did not reflect required-field validation, direct key access in
+  `score_meeting()`, or the `ValueError` → clean error path in `main()`.
+  Updated items 3, 4, and 7 (renumbered to 7 from the original 7); item 7
+  (CLI error handling) added as a new entry.
+
+- **`scripts/verify_demo.sh` unquoted `$PY` variable** — The Python
+  interpreter variable was used unquoted in three places: the version
+  check (`$($PY --version 2>&1)`), the single-audit invocation
+  (`$PY python/audit_meeting.py ...`), and the batch-audit invocation
+  (`$PY python/audit_all_meetings.py ...`). An unquoted variable
+  undergoes word splitting and glob expansion, causing silent failure
+  when the interpreter path contains spaces (e.g. a user-local pyenv
+  or virtualenv path). All three occurrences replaced with `"$PY"`.
+
+- **`README.md` missing COBOL prerequisite for `pytest`** — The Run
+  Tests section did not mention that most tests require the COBOL
+  entropy engine. Added a prerequisite note: GnuCOBOL (`cobc`) must
+  be installed, or the compiled binary must already exist. The Python
+  wrapper auto-compiles on first use. Added a clarifying sentence that
+  only `TestCobolBinaryMissing` deliberately exercises the failure path
+  and does not require `cobc`. Simplified the celery workaround sentence
+  slightly.
+
+- **`tests/test_audit.py` missing runtime dependency note** — The
+  module docstring described what the tests cover but did not warn that
+  29 of 30 tests invoke the real COBOL binary. Added a "Runtime
+  dependency" paragraph naming the exception (`TestCobolBinaryMissing`)
+  and explaining that the wrapper compiles automatically on a clean run
+  if `cobc` is available.
+
+- **`tests/test_audit.py` formula comment for `_HIGH_WASTE`** — The inline
+  comment stated the attendee penalty as 30 (the cap), but the correct value
+  for 15 attendees is `min(30, (15−3)×2) = 24`. The cap of 30 is only
+  reached at 18 or more attendees. Corrected formula total: 20+24+18+15+15+10+20
+  = 122, capped at 100. The assertion (`waste_score == 100`) was already correct
+  and is unchanged.
+
+- **`python/audit_meeting.py` unreachable default in `audit_meeting_data()`** —
+  The return statement used `meeting.get("title", "Untitled Meeting")`. Since
+  `_REQUIRED_FIELDS` validation raises `ValueError` before reaching the return
+  if `"title"` is absent, the default was dead code. Replaced with direct access
+  `meeting["title"]`.
+
+- **`README.md` missing pytest workaround** — A globally-installed celery pytest
+  plugin (incompatible with Python 3.12) crashes collection with
+  `ImportError: cannot import name 'formatargspec'`. The README now documents
+  `pytest tests/ -p no:celery` as a fallback. The plugin does not affect test
+  behavior; the flag simply suppresses its broken initialisation.
 
 - **`dict | None` annotation raises minimum Python version to 3.10** —
   `audit_meeting_data()` used the `X | Y` union syntax (PEP 604) introduced
@@ -162,6 +299,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `ModuleNotFoundError` because `audit_meeting.py` imports `classify` from
   its own directory; corrected to include `sys.path.insert(0, "python")`.
 
+- **`docs/architecture.md` stale sequence diagram label** — Diagram 3 showed
+  the short `classify.py` return value without the em-dash subheading:
+  `"Corporate Heat Death Event: Entropy Made Flesh"`. Corrected to the full
+  string: `"Corporate Heat Death Event: Entropy Made Flesh — This meeting is
+  why people quit."` Trailing newline also added to end of file.
+
 - **`docs/windows-wsl-setup.md` outdated "Audit All" section** — Referenced a
   manual shell loop (`for f in meetings/*.json; do ...`) that predates
   `audit_all_meetings.py`. Replaced with `python3 python/audit_all_meetings.py`.
@@ -171,13 +314,42 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   None are currently read by the Python scripts. Added "Planned" notes to each
   variable so the file accurately describes their status.
 
-### Planned
+- **`python/audit_meeting.py` — validation accepts `{"attendees": null}`** —
+  `_REQUIRED_FIELDS` presence check confirmed the key existed but did not inspect
+  the value. A meeting like `{"attendees": null}` passed validation, then caused
+  an unhandled `TypeError` (`len(None)`) inside `score_meeting()`, producing a
+  raw traceback in the CLI — exactly the failure mode that the `ValueError` catch
+  was meant to prevent. Fixed by extracting `_validate_meeting(meeting)` with
+  full type and shape checks: `title` must be a non-empty string; `duration_minutes`
+  must be a positive integer (bool excluded, since `bool` is a subclass of `int`);
+  `attendees` must be a non-empty list; optional boolean fields must be `bool` if
+  present; `recurrence` must be a known level if present. All errors are collected
+  before raising so the caller sees the full problem list in one `ValueError`.
+  `audit_meeting_data()` now calls `_validate_meeting()` instead of the inline
+  presence-only check. The `main()` try/except is expanded to also wrap
+  `load_meeting()` and covers `OSError` so file-not-found errors also produce a
+  clean `ERROR:` message instead of a traceback.
 
-- Machine-readable output mode (`--format json`)
-- `memory_context` consumed by scoring (longitudinal recurrence penalty,
-  trend-aware recommendation text)
-- `memory/meeting_history.json` written back after each audit
-- `memory/USER.md` user preference file
+- **`tests/test_audit.py` — insufficient type/shape coverage** — `TestInputValidation`
+  previously tested only missing-field presence (3 cases) and optional-field
+  defaults (6 parametrized cases). Added 15 new type/shape tests: empty and
+  whitespace-only title, wrong-type title; `None`, string, zero, negative, and
+  `bool` duration; `None`, wrong-type, and empty-list attendees; wrong-type
+  optional booleans (3 parametrized); unknown recurrence string. Consolidated
+  `TestCliErrorHandling` from 3 separate subprocess invocations (same file, same
+  command, three assertions) into 1 combined test, and added a second CLI test
+  for `{"attendees": null}` to exercise the new type validation through the
+  real entry point. Added `TestRealMeetingFiles`: parametrized over all 12
+  committed meeting JSON files, calls `_validate_meeting()` directly (no COBOL
+  binary required), verifies that every shipped fixture passes the new schema
+  rules. Test total: 33 → 59. Tests not requiring the COBOL binary: 2 → 34.
+
+- **`docs/architecture.md` — Python Layer description stale** — Responsibility
+  list did not reflect `_validate_meeting()` or the expanded error scope in
+  `main()`. Item 3 (agent interface) now mentions delegation to `_validate_meeting()`.
+  Item 4 is a new entry documenting `_validate_meeting()` type/shape rules.
+  Remaining items renumbered (5–11). Item 8 (formerly item 7, CLI error handling)
+  updated to mention `OSError` coverage and `load_meeting()` scope.
 
 ---
 
@@ -286,5 +458,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-[Unreleased]: https://github.com/kenwalger/silentspace-guardian/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/kenwalger/silentspace-guardian/releases/tag/v0.1.0
+[Unreleased]: https://github.com/kenwalger/silentspace-guardian/commits/main
+[0.2.0-dev]: https://github.com/kenwalger/silentspace-guardian/compare/8f340da...main
+[0.1.0]: https://github.com/kenwalger/silentspace-guardian/commit/8f340da

@@ -49,6 +49,41 @@ stats, verdict breakdown, top offenders, and most common failure mode.
 python python/audit_meeting.py meetings/weekly_alignment_sync.json
 ```
 
+### Verify the Full Demo
+
+Confirms compilation, scoring, and report generation all work end-to-end:
+
+```bash
+bash scripts/verify_demo.sh
+```
+
+The script detects your platform, compiles the COBOL engine (or confirms WSL fallback on Windows), audits one meeting with full output shown, runs the batch silently, and verifies all reports were written. On Windows, run from Git Bash. Expected output ends with:
+
+```
+==========================================
+All 8 checks passed. The demo is ready.
+```
+
+If `cobc` is missing on Linux, macOS, or WSL, the script exits with a platform-appropriate install command rather than silently passing.
+
+### Run Tests
+
+**Prerequisite:** GnuCOBOL (`cobc`) must be installed, or the COBOL binary must already be compiled, before running the full test suite. Most tests call `audit_meeting_data()` against the real entropy engine. The Python wrapper auto-compiles the binary on first use (native `cobc` or WSL on Windows), so a clean run will trigger compilation if the binary is absent. Only `TestCobolBinaryMissing` intentionally exercises the failure path — it mocks the binary away and does not require `cobc`.
+
+```bash
+pytest tests/
+```
+
+If a globally-installed pytest plugin crashes collection, run:
+
+```bash
+pytest tests/ -p no:celery
+```
+
+Tests cover the `audit_meeting_data()` agent interface before Hermes is wired in: return structure, score bounds (`waste_score` 0–100, `necessity_prob` 5–100), formula correctness (`necessity_prob = max(5, 100 − waste_score)`), classification and recommendation determinism, `ValueError` on missing required fields, and `SystemExit(1)` when no COBOL binary can be found or compiled.
+
+These tests exist to establish a verified baseline for the agent tool boundary before integration begins.
+
 ---
 
 ## What It Does
@@ -103,7 +138,12 @@ silentspace-guardian/
 │   ├── memory_model.md        # Memory planning doc for future Hermes integration
 │   ├── scoring_model.md       # COBOL engine inputs, outputs, and formula rationale
 │   └── windows-wsl-setup.md  # Beginner setup guide for Windows + WSL2
-├── meetings/                  # 12 mocked meeting JSON files
+├── meetings/                  # Mocked meeting JSON files
+├── scripts/
+│   └── verify_demo.sh         # End-to-end verification script
+├── tests/
+│   ├── conftest.py            # sys.path setup for pytest
+│   └── test_audit.py          # audit_meeting_data() pre-Hermes test suite
 ├── memory/
 │   └── sample_meeting_history.json  # Sample prior-audit data (scaffolding)
 ├── python/
@@ -126,4 +166,76 @@ interface.
 
 ---
 
-*SilentSpace Guardian v0.1.0 — Protecting calendars, one audit at a time.*
+## Current Status
+
+SilentSpace Guardian v0.2.0-dev is a fully functional local auditing tool.
+
+What works:
+
+- Single-meeting audit via `python/audit_meeting.py` — reads a JSON file, runs the COBOL engine, classifies the result, writes a Markdown report
+- Batch audit via `python/audit_all_meetings.py` — scores all 12 meetings, writes individual reports, and produces an aggregate summary report
+- Auto-compilation of the COBOL entropy engine on first run (native or via WSL on Windows)
+- `audit_meeting_data(meeting, memory_context=None) -> dict` — a clean, side-effect-free function that an agent can call directly without touching the CLI layer
+- Cross-platform output: Windows console encoding fixed, path separators normalized, report slugs stable across punctuation in meeting titles
+- Test suite (`tests/test_audit.py`) covering the agent tool boundary: return structure, score bounds, formula correctness, determinism, input validation, and graceful binary-missing failure
+
+The scoring pipeline is deterministic. The COBOL formula is documented in `docs/scoring_model.md`. The entire system runs locally with no network access.
+
+---
+
+## Not Yet Implemented
+
+The following are explicitly out of scope for this version:
+
+- **Hermes integration** — no agent framework is wired in yet; `memory_context` is accepted but unused
+- **Live calendar access** — no Google Calendar, Outlook, or CalDAV integration
+- **OAuth or authentication** — no user accounts, no tokens, no external auth
+- **Persistent memory** — `memory/sample_meeting_history.json` is scaffolding; no history is written back after audits
+- **Slack, Teams, or email notifications** — reports are Markdown files only
+- **Web application or REST API** — no server, no endpoints, no dashboard
+- **Databases or cloud storage** — file system only
+- **Docker or container infrastructure** — install prerequisites and run directly
+
+These are not gaps — they are the designed boundary of v0.1.0 / v0.2.0-dev.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the road-to-production table.
+
+---
+
+## Next: Hermes Integration
+
+The project is structured to support an agent-callable interface without any further refactoring. The function `audit_meeting_data(meeting, memory_context=None) -> dict` in `python/audit_meeting.py` is the intended tool boundary.
+
+An agent (Hermes or any other framework) can call it directly:
+
+```python
+import sys
+sys.path.insert(0, "python")
+from audit_meeting import audit_meeting_data
+
+result = audit_meeting_data(
+    meeting={
+        "title": "Weekly Alignment Sync",
+        "recurrence": "weekly",
+        "duration_minutes": 60,
+        "attendees": ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank"],
+        "has_agenda": False,
+        "has_action_items": False,
+        "could_be_email": True,
+        "organizer": "alice@corp.com",
+        "description": "The one that outlived the team that created it.",
+    }
+)
+# result["waste_score"]    → int
+# result["necessity_prob"] → int
+# result["classification"] → str
+# result["recommendation"] → str
+# result["meeting"]        → dict (original input)
+```
+
+No file I/O. No console output. No side effects. The `memory_context` parameter is the reserved slot for conversation history, prior audit results, and user preferences — the scaffolding is in place; the wiring is next.
+
+See [docs/memory_model.md](docs/memory_model.md) for the planned memory data shape and longitudinal scoring approach.
+
+---
+
+*SilentSpace Guardian v0.2.0-dev — Protecting calendars, one audit at a time.*

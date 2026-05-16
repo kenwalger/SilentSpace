@@ -101,13 +101,15 @@ Entry point and agent-callable interface. Responsibilities:
 
 1. **Auto-compilation** — compiles `entropy_engine.cob` on first run if binary is absent
 2. **JSON loading** — reads the meeting file from the given path (`load_meeting`)
-3. **Agent interface** — `audit_meeting_data(meeting, memory_context=None) -> dict` accepts a meeting dict directly, runs the full scoring pipeline, and returns a structured result; no file I/O required
-4. **Parameter extraction** — maps JSON fields to 6 stdin values for the COBOL binary
-5. **Subprocess call** — invokes the COBOL binary, pipes parameters via stdin, captures stdout
-6. **Output parsing** — reads two integer lines from stdout
-7. **Printing** — formatted console summary (CLI path only)
-8. **Report generation** — calls `classify.py`, assembles Markdown
-9. **File write** — saves to `reports/<slug>_report.md` (CLI path only)
+3. **Agent interface** — `audit_meeting_data(meeting, memory_context=None) -> dict` accepts a meeting dict directly, delegates to `_validate_meeting()`, runs the full scoring pipeline, and returns a structured result; no file I/O required. Raises `ValueError` describing all problems if validation fails.
+4. **Validation** — `_validate_meeting(meeting)` checks type and shape for all fields: `title` must be a non-empty string; `duration_minutes` must be a positive integer (bool excluded); `attendees` must be a non-empty list; optional boolean fields (`has_agenda`, `has_action_items`, `could_be_email`) must be bool if present; `recurrence` must be a known level if present. Collects all errors before raising so callers see the full problem list at once.
+5. **Parameter extraction** — maps JSON fields to 6 stdin values for the COBOL binary; required fields use direct key access (guaranteed present and typed after validation), optional fields (`has_agenda`, `has_action_items`, `could_be_email`, `recurrence`) use safe defaults
+6. **Subprocess call** — invokes the COBOL binary, pipes parameters via stdin, captures stdout
+7. **Output parsing** — reads two integer lines from stdout
+8. **CLI error handling** — `main()` catches `ValueError` and `OSError` from `load_meeting()` and `audit_meeting_data()`, prints a readable `ERROR:` message to stderr, and exits with code 1; no raw traceback is shown to the user
+9. **Printing** — formatted console summary (CLI path only)
+10. **Report generation** — calls `classify.py`, assembles Markdown
+11. **File write** — saves to `reports/<slug>_report.md` (CLI path only)
 
 ### `python/classify.py`
 
@@ -325,7 +327,7 @@ sequenceDiagram
     Note left of cobol: waste=92, necessity=8
 
     audit->>classify: classify_meeting(92)
-    classify-->>audit: "Corporate Heat Death Event: Entropy Made Flesh"
+    classify-->>audit: "Corporate Heat Death Event: Entropy Made Flesh — This meeting is why people quit."
 
     audit->>classify: async_recommendation(meeting, 92)
     classify-->>audit: "Cancel and initiate a post-mortem on how this ended up on six calendars."
