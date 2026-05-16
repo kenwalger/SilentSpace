@@ -17,6 +17,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from classify import async_recommendation, classify_meeting
 
@@ -145,7 +146,7 @@ def score_meeting(meeting: dict, bin_path: Path, wsl_prefix: list[str]) -> tuple
 
 def audit_meeting_data(
     meeting: dict,
-    memory_context: dict | None = None,
+    memory_context: Optional[dict] = None,
 ) -> dict:
     """Score and classify a meeting dict without reading from a file.
 

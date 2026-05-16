@@ -40,13 +40,40 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `memory/sample_meeting_history.json` — five prior-audit examples spanning
   the full outcome range: a three-audit heat death event with no structural
-  improvement (Weekly Alignment Sync), a daily standup that reformed its
-  duration, a one-off post-mortem (lowest score in corpus), a maxed-out entropy
-  event whose organizer has left the company (Synergy Touchpoint v3), and a
-  meeting with the strongest reform trajectory in the corpus (Product Roadmap
+  improvement (Weekly Alignment Sync), a daily standup where a duration
+  reduction had no scoring effect (both durations fall below the 30-minute
+  threshold), a one-off post-mortem (lowest score in corpus), a maxed-out
+  entropy event whose organizer has left the company (Synergy Touchpoint v3),
+  and a meeting that improved by 27 points across two audits (Product Roadmap
   Brainstorm). Scaffolding only — not read by the scoring pipeline.
+  All waste scores and necessity probabilities are formula-derived.
+
+- `docs/scoring_model.md` — authoritative reference for the COBOL entropy
+  engine. Documents all six inputs and two outputs, the full scoring formula
+  with per-component rationale, why `waste_score` is the primary signal, why
+  `necessity_prob` is currently `100 - waste_score` with a 5% floor and what
+  would change that, why duration uses integer quantization, why stdin/stdout
+  is intentionally simple and agent-friendly, and why the COBOL layer is
+  stateless and deliberately unaware of the agent layer. Mentions "deterministic
+  quantization of corporate ambiguity."
 
 ### Changed
+
+- **`ARCHITECTURE.md` restructured as a signpost** — The root file previously
+  held 225 lines of Mermaid diagrams, duplicating the role of `docs/architecture.md`
+  and creating ambiguity about which file was authoritative. Replaced with a
+  two-sentence orientation, a three-row demo-to-production highlights table
+  (Meeting input, Agent memory, Deployment), and links to `docs/architecture.md`
+  and `docs/scoring_model.md`. This follows the established convention for the
+  repo: uppercase root files (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`)
+  are entry points; detailed documentation lives in `docs/`.
+
+- **`docs/architecture.md` — Visual Diagrams section appended** — The six
+  Mermaid diagrams removed from the root `ARCHITECTURE.md` are preserved here
+  as a new section at the end of the file: high-level system overview, detailed
+  data flow, scoring pipeline sequence, COBOL scoring decision tree,
+  classification tiers, and module dependency map. The `memory_contxt` typo in
+  the Road to Production table was corrected to `memory_context`.
 
 - **`audit_meeting.py` — `main()` delegates to `audit_meeting_data()`** —
   Scoring, classification, and recommendation logic are no longer duplicated in
@@ -78,6 +105,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   was held to review this report."*
 
 ### Fixed
+
+- **`dict | None` annotation raises minimum Python version to 3.10** —
+  `audit_meeting_data()` used the `X | Y` union syntax (PEP 604) introduced
+  in Python 3.10. The project previously required only Python 3.9. Fixed by
+  replacing `dict | None` with `Optional[dict]` from `typing`, which is valid
+  from Python 3.5 onward.
+
+- **Formula-inconsistent scores in `memory/sample_meeting_history.json`** —
+  Three entries had hand-written scores that diverged from the COBOL formula
+  by up to 12 points. Since this file is intended as reference data for future
+  longitudinal scoring logic, the errors could misdirect that implementation.
+  All scores are now derived from the formula.
+  Corrections:
+  — Weekly Alignment Sync audit-1: `necessity_prob` 4 → 5
+    (`max(5, 100-96)` = 5, not 4)
+  — Daily Engineering Standup audit-1: `waste_score` 65 → 63,
+    `necessity_prob` 35 → 37
+  — Daily Engineering Standup audit-2: `waste_score` 60 → 63,
+    `necessity_prob` 40 → 37 (duration 30→15 min has no scoring effect;
+    the duration drag penalty only triggers above 30 minutes, so both
+    historical snapshots score identically — the duration cut was not
+    the reform the notes implied)
+  — Product Roadmap Brainstorm audit-1: `waste_score` 50 → 62,
+    `necessity_prob` 50 → 38 (classification corrected from Calendar
+    Debris to Meeting-Shaped Void; reform narrative updated to reflect
+    a 27-point improvement, not 15)
 
 - **Windows console encoding** — Classification labels contain an em-dash that
   CP1252/CP437 terminals can't display, producing garbage output. Fixed by
