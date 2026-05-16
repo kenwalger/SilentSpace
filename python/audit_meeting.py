@@ -206,7 +206,10 @@ def audit_meeting_data(
     but unused; reserved for future agent integration.
 
     Raises:
-        ValueError: if any field in _REQUIRED_FIELDS is absent from meeting.
+        ValueError: if any required field (title, duration_minutes, attendees) is
+            absent, has the wrong type, or has an invalid value (e.g. empty string,
+            non-positive integer, null list). All validation errors are collected
+            and reported in a single raise via _validate_meeting().
 
     Returns:
         {
