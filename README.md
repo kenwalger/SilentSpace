@@ -51,18 +51,30 @@ python python/audit_meeting.py meetings/weekly_alignment_sync.json
 
 ### Verify the Full Demo
 
-Run the verification script to confirm compilation, scoring, and report generation all work end-to-end:
+Confirms compilation, scoring, and report generation all work end-to-end:
 
 ```bash
 bash scripts/verify_demo.sh
 ```
 
-The script compiles the COBOL engine (if `cobc` is available), audits one meeting, runs the full batch, and confirms all reports were written. On Windows, run from Git Bash or WSL. Expected output ends with:
+The script detects your platform, compiles the COBOL engine (or confirms WSL fallback on Windows), audits one meeting with full output shown, runs the batch silently, and verifies all reports were written. On Windows, run from Git Bash. Expected output ends with:
 
 ```
 ==========================================
 All 8 checks passed. The demo is ready.
 ```
+
+If `cobc` is missing on Linux, macOS, or WSL, the script exits with a platform-appropriate install command rather than silently passing.
+
+### Run Tests
+
+```bash
+pytest tests/
+```
+
+Tests cover the `audit_meeting_data()` agent interface before Hermes is wired in: return structure, score bounds (`waste_score` 0–100, `necessity_prob` 5–100), formula correctness (`necessity_prob = max(5, 100 − waste_score)`), classification and recommendation determinism, `ValueError` on missing required fields, and `SystemExit(1)` when no COBOL binary can be found or compiled.
+
+These tests exist to establish a verified baseline for the agent tool boundary before integration begins.
 
 ---
 
@@ -121,6 +133,9 @@ silentspace-guardian/
 ├── meetings/                  # Mocked meeting JSON files
 ├── scripts/
 │   └── verify_demo.sh         # End-to-end verification script
+├── tests/
+│   ├── conftest.py            # sys.path setup for pytest
+│   └── test_audit.py          # audit_meeting_data() pre-Hermes test suite
 ├── memory/
 │   └── sample_meeting_history.json  # Sample prior-audit data (scaffolding)
 ├── python/
@@ -154,6 +169,7 @@ What works:
 - Auto-compilation of the COBOL entropy engine on first run (native or via WSL on Windows)
 - `audit_meeting_data(meeting, memory_context=None) -> dict` — a clean, side-effect-free function that an agent can call directly without touching the CLI layer
 - Cross-platform output: Windows console encoding fixed, path separators normalized, report slugs stable across punctuation in meeting titles
+- Test suite (`tests/test_audit.py`) covering the agent tool boundary: return structure, score bounds, formula correctness, determinism, input validation, and graceful binary-missing failure
 
 The scoring pipeline is deterministic. The COBOL formula is documented in `docs/scoring_model.md`. The entire system runs locally with no network access.
 

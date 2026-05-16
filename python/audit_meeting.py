@@ -40,6 +40,11 @@ RECURRENCE_LEVELS = {
     "daily": 4,
 }
 
+# Fields required for correct scoring and report generation.
+# Optional fields (has_agenda, has_action_items, could_be_email, recurrence,
+# organizer, description) default to safe values when absent.
+_REQUIRED_FIELDS = ("title", "duration_minutes", "attendees")
+
 
 def _to_wsl_path(p: Path) -> str:
     """Convert a Windows absolute path to its WSL /mnt/ equivalent."""
@@ -154,6 +159,9 @@ def audit_meeting_data(
     dictionary and returns a structured result. memory_context is accepted
     but unused; reserved for future agent integration.
 
+    Raises:
+        ValueError: if any field in _REQUIRED_FIELDS is absent from meeting.
+
     Returns:
         {
             "title": str,
@@ -164,6 +172,11 @@ def audit_meeting_data(
             "meeting": dict,
         }
     """
+    missing = [f for f in _REQUIRED_FIELDS if f not in meeting]
+    if missing:
+        raise ValueError(
+            "Meeting dict is missing required fields: " + ", ".join(missing)
+        )
     bin_path, wsl_prefix = ensure_cobol_binary()
     waste_score, necessity_prob = score_meeting(meeting, bin_path, wsl_prefix)
     classification = classify_meeting(waste_score)

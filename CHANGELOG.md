@@ -23,6 +23,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `tests/conftest.py` and `tests/test_audit.py` — pre-Hermes test suite.
+  Tests the `audit_meeting_data()` agent tool boundary before any agent
+  framework is wired in. Coverage: return structure (all six keys present,
+  meeting dict passed through); score bounds (waste_score 0–100,
+  necessity_prob 5–100); formula correctness (`necessity_prob = max(5,
+  100 − waste_score)`, cap verified at 100, floor at 5); classification
+  and recommendation determinism (same input → same output); input
+  validation (ValueError on missing title / duration_minutes / attendees,
+  error message lists all missing fields); optional field defaults
+  (parametrized across has_agenda, has_action_items, could_be_email,
+  recurrence, organizer, description); COBOL binary missing (monkeypatches
+  binary paths and shutil.which, asserts SystemExit code 1, clears LRU
+  cache before and after to avoid test pollution). Run with: pytest tests/
+
+- `scripts/verify_demo.sh` — end-to-end demo verification script. Five
+  steps: prerequisites, COBOL compilation, single meeting audit, batch
+  audit, report file checks. On all passes: exit 0, "All N checks passed."
+  On any failure: exit 1, failing check listed. See also: Changed below.
+
 - `python/audit_all_meetings.py` — Batch auditor. Scores every JSON file in
   `meetings/`, writes individual Markdown reports to `reports/`, and produces
   `reports/summary_report.md` containing: total meetings audited, average waste
@@ -70,6 +89,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   quantization of corporate ambiguity."
 
 ### Changed
+
+- **`scripts/verify_demo.sh` — platform-aware cobc handling** — The prior
+  version passed the "missing cobc" check on all platforms ("Python will
+  auto-compile via WSL"). This was only correct on Windows/Git Bash where
+  the Python wrapper provides WSL auto-compilation as a supported fallback.
+  On Linux, macOS, and WSL, missing cobc is a real failure that blocks the
+  pipeline. Fixed: platform is now detected at startup (MSYSTEM / OSTYPE for
+  Git Bash; /proc/version for WSL; uname for macOS; Linux as default). On
+  Windows, missing cobc still passes with the auto-compile note. On
+  Linux/WSL, missing cobc fails with `sudo apt install gnucobol`. On macOS,
+  with `brew install gnu-cobol`. PASS is not incremented for the pass-through
+  note — the check passes because the fallback is real, not because the tool
+  is missing. Also: meeting and report file counting now uses `find -print0`
+  piped to `read -d ''` instead of glob expansion, correctly handling empty
+  directories without the literal-pattern fallback. Single-audit failure
+  message now explicitly says "COBOL binary not compiled" when the binary
+  is absent, rather than a generic error.
+
+- **`python/audit_meeting.py` — required-field validation in
+  `audit_meeting_data()`** — The function previously used `.get()` with
+  defaults for all fields, silently scoring meetings with missing
+  `duration_minutes` as 60 minutes and missing `attendees` as zero. Added
+  `_REQUIRED_FIELDS = ("title", "duration_minutes", "attendees")` guard:
+  `ValueError` is raised listing all absent required fields if any are
+  missing. Optional fields (has_agenda, has_action_items, could_be_email,
+  recurrence, organizer, description) retain their defaults.
 
 - **`ARCHITECTURE.md` restructured as a signpost** — The root file previously
   held 225 lines of Mermaid diagrams, duplicating the role of `docs/architecture.md`
