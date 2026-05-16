@@ -68,11 +68,13 @@ If `cobc` is missing on Linux, macOS, or WSL, the script exits with a platform-a
 
 ### Run Tests
 
+**Prerequisite:** GnuCOBOL (`cobc`) must be installed, or the COBOL binary must already be compiled, before running the full test suite. Most tests call `audit_meeting_data()` against the real entropy engine. The Python wrapper auto-compiles the binary on first use (native `cobc` or WSL on Windows), so a clean run will trigger compilation if the binary is absent. Only `TestCobolBinaryMissing` intentionally exercises the failure path — it mocks the binary away and does not require `cobc`.
+
 ```bash
 pytest tests/
 ```
 
-If a globally-installed pytest plugin is broken and crashes collection, run:
+If a globally-installed pytest plugin crashes collection, run:
 
 ```bash
 pytest tests/ -p no:celery

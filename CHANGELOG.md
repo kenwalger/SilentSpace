@@ -163,6 +163,31 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **`scripts/verify_demo.sh` unquoted `$PY` variable** — The Python
+  interpreter variable was used unquoted in three places: the version
+  check (`$($PY --version 2>&1)`), the single-audit invocation
+  (`$PY python/audit_meeting.py ...`), and the batch-audit invocation
+  (`$PY python/audit_all_meetings.py ...`). An unquoted variable
+  undergoes word splitting and glob expansion, causing silent failure
+  when the interpreter path contains spaces (e.g. a user-local pyenv
+  or virtualenv path). All three occurrences replaced with `"$PY"`.
+
+- **`README.md` missing COBOL prerequisite for `pytest`** — The Run
+  Tests section did not mention that most tests require the COBOL
+  entropy engine. Added a prerequisite note: GnuCOBOL (`cobc`) must
+  be installed, or the compiled binary must already exist. The Python
+  wrapper auto-compiles on first use. Added a clarifying sentence that
+  only `TestCobolBinaryMissing` deliberately exercises the failure path
+  and does not require `cobc`. Simplified the celery workaround sentence
+  slightly.
+
+- **`tests/test_audit.py` missing runtime dependency note** — The
+  module docstring described what the tests cover but did not warn that
+  29 of 30 tests invoke the real COBOL binary. Added a "Runtime
+  dependency" paragraph naming the exception (`TestCobolBinaryMissing`)
+  and explaining that the wrapper compiles automatically on a clean run
+  if `cobc` is available.
+
 - **`tests/test_audit.py` formula comment for `_HIGH_WASTE`** — The inline
   comment stated the attendee penalty as 30 (the cap), but the correct value
   for 15 attendees is `min(30, (15−3)×2) = 24`. The cap of 30 is only

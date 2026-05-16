@@ -6,6 +6,13 @@ framework is wired in. They cover return structure, score bounds, formula
 correctness, classification/recommendation determinism, input validation,
 and graceful handling of a missing COBOL binary.
 
+Runtime dependency: all test classes except TestCobolBinaryMissing call
+audit_meeting_data() against the real COBOL entropy engine. GnuCOBOL (cobc)
+must be installed, or the binary must already exist at cobol/entropy_engine.
+The Python wrapper compiles it automatically on first use; a clean run on a
+machine with cobc will compile once and cache the result for the session.
+TestCobolBinaryMissing mocks the binary away entirely and does not require cobc.
+
 Run with:  pytest tests/
 """
 

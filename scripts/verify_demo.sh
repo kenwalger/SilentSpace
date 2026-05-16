@@ -39,7 +39,7 @@ printf "  Platform: %s\n\n" "$PLATFORM"
 printf "1. Prerequisites\n"
 
 if [[ -n "$PY" ]]; then
-    ok "Python: $($PY --version 2>&1)"
+    ok "Python: $("$PY" --version 2>&1)"
 else
     fail "Python not found -- install Python 3.9+ and add it to PATH"
 fi
@@ -94,7 +94,7 @@ printf "   Meeting: meetings/weekly_alignment_sync.json\n"
 printf "   ----------------------------------------------------------\n"
 
 if [[ -n "$PY" ]]; then
-    if $PY python/audit_meeting.py meetings/weekly_alignment_sync.json; then
+    if "$PY" python/audit_meeting.py meetings/weekly_alignment_sync.json; then
         ok "Single audit completed"
     else
         if [[ ! -f "cobol/entropy_engine" && ! -f "cobol/entropy_engine.exe" ]]; then
@@ -113,7 +113,7 @@ printf "\n"
 printf "4. Batch audit (all meetings, output suppressed)\n"
 
 if [[ -n "$PY" ]]; then
-    if $PY python/audit_all_meetings.py >/dev/null 2>&1; then
+    if "$PY" python/audit_all_meetings.py >/dev/null 2>&1; then
         ok "All $MEETING_COUNT meetings scored"
     else
         fail "audit_all_meetings.py failed -- rerun without >/dev/null to debug:"
