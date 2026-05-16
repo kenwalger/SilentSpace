@@ -35,7 +35,7 @@ _MINIMAL = {
 }
 
 # A maxed-out meeting: long, crowded, no agenda, no actions, could be email, weekly.
-# Formula: 20 + 30 (attendee cap) + 18 (dur drag) + 15 (weekly) + 15 + 10 + 20 = 128 → capped at 100.
+# Formula: 20 + 24 (attendee: min(30,(15-3)*2)) + 18 (dur drag) + 15 (weekly) + 15 + 10 + 20 = 122 → capped at 100.
 _HIGH_WASTE = {
     "title": "Synergy Touchpoint v3",
     "recurrence": "weekly",

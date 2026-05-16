@@ -163,6 +163,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **`tests/test_audit.py` formula comment for `_HIGH_WASTE`** — The inline
+  comment stated the attendee penalty as 30 (the cap), but the correct value
+  for 15 attendees is `min(30, (15−3)×2) = 24`. The cap of 30 is only
+  reached at 18 or more attendees. Corrected formula total: 20+24+18+15+15+10+20
+  = 122, capped at 100. The assertion (`waste_score == 100`) was already correct
+  and is unchanged.
+
+- **`python/audit_meeting.py` unreachable default in `audit_meeting_data()`** —
+  The return statement used `meeting.get("title", "Untitled Meeting")`. Since
+  `_REQUIRED_FIELDS` validation raises `ValueError` before reaching the return
+  if `"title"` is absent, the default was dead code. Replaced with direct access
+  `meeting["title"]`.
+
+- **`README.md` missing pytest workaround** — A globally-installed celery pytest
+  plugin (incompatible with Python 3.12) crashes collection with
+  `ImportError: cannot import name 'formatargspec'`. The README now documents
+  `pytest tests/ -p no:celery` as a fallback. The plugin does not affect test
+  behavior; the flag simply suppresses its broken initialisation.
+
 - **`dict | None` annotation raises minimum Python version to 3.10** —
   `audit_meeting_data()` used the `X | Y` union syntax (PEP 604) introduced
   in Python 3.10. The project previously required only Python 3.9. Fixed by

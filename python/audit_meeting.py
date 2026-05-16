@@ -183,7 +183,7 @@ def audit_meeting_data(
     recommendation = async_recommendation(meeting, waste_score)
 
     return {
-        "title": meeting.get("title", "Untitled Meeting"),
+        "title": meeting["title"],
         "waste_score": waste_score,
         "necessity_prob": necessity_prob,
         "classification": classification,

@@ -72,6 +72,12 @@ If `cobc` is missing on Linux, macOS, or WSL, the script exits with a platform-a
 pytest tests/
 ```
 
+If a globally-installed pytest plugin is broken and crashes collection, run:
+
+```bash
+pytest tests/ -p no:celery
+```
+
 Tests cover the `audit_meeting_data()` agent interface before Hermes is wired in: return structure, score bounds (`waste_score` 0–100, `necessity_prob` 5–100), formula correctness (`necessity_prob = max(5, 100 − waste_score)`), classification and recommendation determinism, `ValueError` on missing required fields, and `SystemExit(1)` when no COBOL binary can be found or compiled.
 
 These tests exist to establish a verified baseline for the agent tool boundary before integration begins.
