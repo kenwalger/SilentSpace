@@ -70,7 +70,7 @@ printf "\n"
 printf "2. COBOL compilation\n"
 
 if command -v cobc >/dev/null 2>&1; then
-    if cobc -x -o cobol/entropy_engine cobol/entropy_engine.cob 2>/dev/null; then
+    if cobc -x -o cobol/entropy_engine cobol/entropy_engine.cob; then
         ok "Compiled: cobol/entropy_engine (native cobc)"
     else
         fail "cobc compilation failed -- check cobol/entropy_engine.cob"

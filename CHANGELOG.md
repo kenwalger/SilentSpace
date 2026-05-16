@@ -305,6 +305,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   string: `"Corporate Heat Death Event: Entropy Made Flesh — This meeting is
   why people quit."` Trailing newline also added to end of file.
 
+- **`python/audit_meeting.py` — `audit_meeting_data()` docstring Raises clause
+  stale** — After `_validate_meeting()` was extracted, the `Raises:` section
+  still said "if any field in `_REQUIRED_FIELDS` is absent", which described
+  only the old presence check. Updated to describe the full scope: absent, wrong
+  type, or invalid value; collects all errors before raising via
+  `_validate_meeting()`.
+
+- **`scripts/verify_demo.sh` — cobc stderr suppressed on compilation failure** —
+  The `cobc` invocation used `2>/dev/null`, discarding compiler output even when
+  compilation failed. The script reported "cobc compilation failed" but gave no
+  diagnostic detail. Removed `2>/dev/null` so compiler errors print to the
+  terminal and the failure check above can cite them.
+
+- **`tests/test_audit.py` — `_MEETING_FILES` empty list silently skips
+  parametrized suite** — If `meetings/*.json` matched nothing (missing directory,
+  wrong working directory, accidental deletion), `pytest.mark.parametrize` would
+  collect zero cases and report 0 passed with no warning. Added a module-level
+  guard: raises `RuntimeError` at collection time if `_MEETING_FILES` is empty,
+  making the failure loud and immediately diagnosable.
+
 - **`docs/windows-wsl-setup.md` outdated "Audit All" section** — Referenced a
   manual shell loop (`for f in meetings/*.json; do ...`) that predates
   `audit_all_meetings.py`. Replaced with `python3 python/audit_all_meetings.py`.

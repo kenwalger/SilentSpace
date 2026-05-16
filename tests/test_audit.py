@@ -345,6 +345,8 @@ class TestCliErrorHandling:
 
 _MEETINGS_DIR = Path(__file__).parent.parent / "meetings"
 _MEETING_FILES = sorted(_MEETINGS_DIR.glob("*.json"))
+if not _MEETING_FILES:
+    raise RuntimeError(f"No meeting JSON files found in {_MEETINGS_DIR}; parametrized tests would silently skip")
 
 
 class TestRealMeetingFiles:
