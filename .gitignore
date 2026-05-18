@@ -21,6 +21,11 @@ memory/USER.md
 # The reports/ directory itself is tracked via reports/.gitkeep.
 reports/*.md
 
+# Keep canonical demo artifacts
+!reports/summary_report.md
+!reports/weekly_entropy.md
+!reports/weekly_alignment_sync_report.md
+
 # ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
