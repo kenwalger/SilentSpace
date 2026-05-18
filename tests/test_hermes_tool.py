@@ -250,14 +250,14 @@ class TestInvalidFieldTypes:
 # ── --write-report ─────────────────────────────────────────────────────────────
 
 class TestWriteReport:
-    def test_write_report_exits_zero(self, tmp_path):
+    def test_write_report_exits_zero(self):
         result = _run(
             "meetings/weekly_alignment_sync.json",
             "--write-report",
         )
         assert result.returncode == 0, result.stderr
 
-    def test_write_report_output_includes_report_path(self, tmp_path):
+    def test_write_report_output_includes_report_path(self):
         result = _run(
             "meetings/weekly_alignment_sync.json",
             "--write-report",

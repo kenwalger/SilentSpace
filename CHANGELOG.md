@@ -19,6 +19,39 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.1-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/generate_weekly_entropy.py` — threshold inconsistency** — The
+  `total_weekly_hours` sum used `>= 60` to filter high-waste recurring meetings,
+  while the `high_waste_recurring` list, the Overview table label
+  (`Recurring Waste Score ≥ 61`), the pattern-analysis count, and the footnote
+  all used `>= 61`. The off-by-one meant the hours figure counted one extra tier
+  of meetings (waste == 60, i.e. the top of "Calendar Debris") that the rest of
+  the report classified as below the remediation threshold. Unified to `>= 61`
+  throughout — the natural boundary above the "Calendar Debris" tier (41–60).
+  One line changed: `>= 60` → `>= 61` in the `total_weekly_hours` expression.
+
+- **`python/hermes_meeting_tool.py` — unhandled `OSError` in `_load_stdin()`** —
+  `sys.stdin.read()` was only wrapped in a `json.JSONDecodeError` handler. A
+  broken pipe, a closed stdin descriptor, or any other I/O failure on the stdin
+  stream would raise an unhandled `OSError` and produce a raw Python traceback —
+  violating the CLI contract that all errors print as `ERROR: <message>` to
+  stderr with a non-zero exit code. Fixed by splitting the try/except into two
+  separate blocks: `OSError` on the read (exit code 1), `json.JSONDecodeError`
+  on the parse (exit code 2). The fix aligns `_load_stdin()` with the existing
+  two-block pattern already used in `_load_file()`.
+
+- **`tests/test_hermes_tool.py` — unused `tmp_path` fixture in `TestWriteReport`** —
+  `test_write_report_exits_zero` and `test_write_report_output_includes_report_path`
+  declared `tmp_path` as a parameter but never used it. The tests write to the
+  shared `reports/` directory via the tool's own `save_report()` logic — `tmp_path`
+  was left over from an earlier draft. Removed the unused parameter from both
+  methods.
+
+---
+
 ## [0.3.0-dev] — 2026-05-18
 
 ### Added

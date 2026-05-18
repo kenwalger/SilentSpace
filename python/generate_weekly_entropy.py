@@ -53,7 +53,7 @@ def generate_weekly_entropy(results: list[dict]) -> str:
     recurring = [r for r in results if r["meeting"].get("recurrence", "none") != "none"]
     one_time = [r for r in results if r["meeting"].get("recurrence", "none") == "none"]
 
-    total_weekly_hours = sum(_weekly_waste_hours(r) for r in recurring if r["waste_score"] >= 60)
+    total_weekly_hours = sum(_weekly_waste_hours(r) for r in recurring if r["waste_score"] >= 61)
 
     recurring_rows = "\n".join(
         f"| {r['title']} | "

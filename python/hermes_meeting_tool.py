@@ -53,6 +53,9 @@ def _load_file(path: str) -> dict:
 def _load_stdin() -> dict:
     try:
         raw = sys.stdin.read()
+    except OSError as exc:
+        _die(1, f"Failed to read from stdin: {exc}")
+    try:
         return json.loads(raw)
     except json.JSONDecodeError as exc:
         _die(2, f"Invalid JSON on stdin: {exc}")
