@@ -116,8 +116,16 @@ def main() -> None:
     results = []
     for path in meeting_files:
         meeting = load_meeting(str(path))
-        result = audit_meeting_data(meeting)
+        try:
+            result = audit_meeting_data(meeting)
+        except ValueError as exc:
+            print(f"WARNING: Skipping {path.name}: {exc}", file=sys.stderr)
+            continue
         results.append(result)
+
+    if not results:
+        print("ERROR: No valid meetings to process.", file=sys.stderr)
+        sys.exit(1)
 
     candidates = [r for r in results if _is_async_candidate(r["meeting"], r)]
 

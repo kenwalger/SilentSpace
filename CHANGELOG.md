@@ -19,6 +19,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.5-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/generate_daily_digest.py`, `generate_preflight.py`,
+  `generate_weekly_entropy.py` — unhandled `ValueError` in audit loop** — Each
+  generator's `main()` called `audit_meeting_data()` without an exception
+  handler. A single malformed or schema-invalid JSON file in `meetings/` would
+  raise `ValueError`, terminate the loop immediately with a raw Python traceback,
+  and produce no report at all. Fixed in all three generators with the same
+  pattern: wrap `audit_meeting_data()` in `try/except ValueError`, print a
+  `WARNING: Skipping <filename>: <reason>` message to stderr, and `continue` to
+  the next file. Added a post-loop guard: if no valid results were collected,
+  print `ERROR: No valid meetings to process.` to stderr and exit 1 rather than
+  passing an empty list to the report generator. Valid files in the same run are
+  unaffected by one invalid file.
+
+- **`tests/test_hermes_tool.py` — `_run()` had no timeout** — `subprocess.run()`
+  without a timeout hangs indefinitely if the tool blocks (e.g., waiting on
+  stdin when `--stdin` is specified but no data arrives, or if a subprocess it
+  spawns stalls). Added `timeout=30` to the `_run()` helper. If a call exceeds
+  30 seconds, `subprocess.TimeoutExpired` is raised, failing the test immediately
+  with a clear diagnostic rather than blocking the suite.
+
+---
+
 ## [0.3.4-dev] — 2026-05-18
 
 ### Fixed
