@@ -15,6 +15,10 @@ SilentSpace is a local-first AI meeting audit system. It uses a compiled COBOL e
 for deterministic scoring, a Python orchestration layer for classification and reporting, and
 Hermes as the adaptive agent edge for natural language interaction and scheduled workflows.
 
+
+![Hermes In Action(img/hermes_audit.png)
+> Hermes autonomously auditing a recurring cross-functional alignment meeting and generating a markdown entropy report.
+
 ---
 
 ## Current Status
