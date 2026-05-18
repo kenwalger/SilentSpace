@@ -19,6 +19,292 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.4-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/hermes_meeting_tool.py` — `--write-report` block unhandled
+  `OSError`** — `generate_report()` and `save_report()` were called without
+  any exception handler. If `reports/` was not writable (permission denied,
+  read-only filesystem, full disk, or any other I/O condition), `save_report()`'s
+  `Path.write_text()` call raised a raw `OSError` that propagated as an
+  unhandled exception, printing a full Python traceback to stderr and exiting
+  with code 1 by default — violating the CLI contract that all errors produce
+  `ERROR: <message>` on stderr with a documented exit code. Fixed by wrapping
+  the entire `--write-report` block in `try/except OSError` and routing through
+  `_die(1, f"Failed to write report: {exc}")`. The `output["report_path"]`
+  assignment remains outside the try block (pure Python, cannot raise). On a
+  genuine write failure the tool now exits 1 and prints a clean, traceback-free
+  error message.
+
+- **`tests/test_hermes_tool.py` — no coverage for `--write-report` I/O
+  failure** — Added `TestWriteReportIOError` class with two tests:
+  `test_io_error_exits_nonzero` and `test_io_error_prints_clean_error`. The
+  fixture `_block_report_path` creates a **directory** at the exact path
+  `save_report()` would write to (`reports/hermes_io_error_fixture_report.md`,
+  derived deterministically from the fixture meeting title). Attempting
+  `Path.write_text()` on a directory raises `IsADirectoryError` on Linux/macOS
+  and `PermissionError` on Windows — both `OSError` subclasses — triggering the
+  new handler on all platforms. The fixture removes the directory after each
+  test. This approach avoids making `reports/` itself read-only (which could
+  corrupt the test environment if cleanup failed). Test count: 97 → 99.
+
+---
+
+## [0.3.3-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/hermes_meeting_tool.py` — `report_path` was absolute** — The tool
+  returned the absolute system path from `save_report()` as the `report_path`
+  field in the JSON output (e.g. `C:\Users\kenal\silentspace-guardian\reports\
+  weekly_alignment_sync_report.md`). Documentation examples and agent consumers
+  expect a portable relative path. Fixed by importing `ROOT` from `audit_meeting`
+  and emitting `report_path.relative_to(ROOT).as_posix()` — consistently
+  forward-slashed and relative to the repo root on all platforms
+  (e.g. `reports/weekly_alignment_sync_report.md`). Where reports are written is
+  unchanged.
+
+- **`python/generate_preflight.py` — safe-list computed via dict equality** —
+  `safe = [r for r in results if r not in candidates]` used Python list
+  `__contains__`, which compares full nested dicts for equality on every
+  iteration. For large or subtly mutated result dicts this is fragile and
+  unclear. Fixed by computing `safe` directly and independently from the same
+  predicate used for `candidates`:
+  `safe = [r for r in results if not _is_async_candidate(r["meeting"], r)]`.
+  No dict equality, no object identity, no dependency between the two list
+  comprehensions. Output is identical for the mocked dataset.
+
+- **`skills/entropy_audit/SKILL.md` — escaped Markdown syntax** — The file
+  contained `\#` for its heading and `\-` for all five bullet items, rendering
+  as literal backslash-prefixed text on GitHub. Same export-artifact root cause
+  as `SOUL.md`. Fixed: `\#` → `#`, five `\-` → `-`. Wording unchanged.
+
+### Changed
+
+- **`tests/test_hermes_tool.py` — `TestWriteReport` updated for relative
+  `report_path`** — `test_write_report_file_exists` now resolves the relative
+  path returned by the tool against `_ROOT` before asserting the file exists
+  (`_ROOT / parsed["report_path"]`). Added `test_write_report_path_is_relative`
+  which asserts `Path(parsed["report_path"]).is_absolute()` is false, locking
+  in the documented output shape. Test count: 96 → 97.
+
+---
+
+## [0.3.2-dev] — 2026-05-18
+
+### Fixed
+
+- **`SOUL.md` — escaped Markdown syntax** — The file contained literal
+  backslash-escaped Markdown syntax (`\#`, `\##`, `\-`) and HTML entities
+  (`&#x20;`) throughout, causing headings to render as plain text prefixed with
+  a backslash and list items to render as `\- item` rather than bullet points on
+  GitHub and any standard Markdown renderer. Root cause: the file was exported
+  from a rich-text tool that escaped Markdown metacharacters on output. Fixed by
+  rewriting the file with proper Markdown syntax: `\#` → `#` (top-level heading),
+  `\##` → `##` (second-level heading for "Behavioral Directives"), `\-` → `-`
+  (all bullet list items), and `&#x20;` → removed (these were indentation padding
+  before line-wrapped list continuations; each affected bullet is now a single
+  unbroken line). All wording is preserved exactly. SOUL.md now renders cleanly
+  as the authoritative Guardian persona and behavior contract.
+
+- **`python/hermes_meeting_tool.py` — `_die()` annotated `-> None` instead of
+  `-> NoReturn`** — `_die()` unconditionally calls `sys.exit()` and therefore
+  never returns. Annotating it `-> None` told type checkers it could return
+  normally, causing them to flag implicit `None` returns in callers like
+  `_load_file()` and `_load_stdin()` — functions whose `except` branches call
+  `_die()` and then fall through with no explicit return. Fixed by importing
+  `NoReturn` from `typing` and changing the annotation to `-> NoReturn`. No
+  runtime behavior changes.
+
+- **`tests/test_hermes_tool.py` — `TestWriteReport` not isolated from
+  `reports/`** — The three `--write-report` tests all wrote to
+  `reports/weekly_alignment_sync_report.md` in the real repository directory.
+  `test_write_report_file_exists` could silently pass because a stale file from
+  a prior run was already present before the test invoked the tool. Added an
+  `autouse` pytest fixture `_clean_report` to `TestWriteReport` that deletes the
+  known report path before each test (preventing stale-file false positives) and
+  again after (leaving `reports/` clean between runs). Also added an explicit
+  pre-condition assertion to `test_write_report_file_exists`: the test now
+  asserts the file does not exist before running the tool, making fixture failure
+  immediately diagnosable. The underlying behavior — that the tool writes to
+  `reports/` — is unchanged; only the test harness is isolated.
+
+---
+
+## [0.3.1-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/generate_weekly_entropy.py` — threshold inconsistency** — The
+  `total_weekly_hours` sum used `>= 60` to filter high-waste recurring meetings,
+  while the `high_waste_recurring` list, the Overview table label
+  (`Recurring Waste Score ≥ 61`), the pattern-analysis count, and the footnote
+  all used `>= 61`. The off-by-one meant the hours figure counted one extra tier
+  of meetings (waste == 60, i.e. the top of "Calendar Debris") that the rest of
+  the report classified as below the remediation threshold. Unified to `>= 61`
+  throughout — the natural boundary above the "Calendar Debris" tier (41–60).
+  One line changed: `>= 60` → `>= 61` in the `total_weekly_hours` expression.
+
+- **`python/hermes_meeting_tool.py` — unhandled `OSError` in `_load_stdin()`** —
+  `sys.stdin.read()` was only wrapped in a `json.JSONDecodeError` handler. A
+  broken pipe, a closed stdin descriptor, or any other I/O failure on the stdin
+  stream would raise an unhandled `OSError` and produce a raw Python traceback —
+  violating the CLI contract that all errors print as `ERROR: <message>` to
+  stderr with a non-zero exit code. Fixed by splitting the try/except into two
+  separate blocks: `OSError` on the read (exit code 1), `json.JSONDecodeError`
+  on the parse (exit code 2). The fix aligns `_load_stdin()` with the existing
+  two-block pattern already used in `_load_file()`.
+
+- **`tests/test_hermes_tool.py` — unused `tmp_path` fixture in `TestWriteReport`** —
+  `test_write_report_exits_zero` and `test_write_report_output_includes_report_path`
+  declared `tmp_path` as a parameter but never used it. The tests write to the
+  shared `reports/` directory via the tool's own `save_report()` logic — `tmp_path`
+  was left over from an earlier draft. Removed the unused parameter from both
+  methods.
+
+---
+
+## [0.3.0-dev] — 2026-05-18
+
+### Added
+
+- **`python/hermes_meeting_tool.py` — Hermes agent tool boundary** — Structured
+  CLI interface for agent consumption. Accepts a meeting JSON from a file path
+  argument or `--stdin`. Calls `audit_meeting_data()` from `audit_meeting.py`
+  without duplicating any scoring logic. Outputs a structured JSON result to
+  stdout containing `title`, `waste_score`, `necessity_prob`, `classification`,
+  `recommendation`, and the original `meeting` dict. Supports `--write-report`
+  to additionally generate a Markdown report to `reports/` using existing
+  `generate_report()` and `save_report()` logic; when active, the output JSON
+  includes a `report_path` key. Error handling: file not found exits 1, JSON
+  parse error exits 2, meeting validation error exits 3. All errors are printed
+  as `ERROR: <message>` to stderr with no Python traceback. Mutually exclusive
+  source arguments (`file` / `--stdin`) are validated with a clear argparse
+  error if neither or both are provided.
+
+- **`python/generate_daily_digest.py` — Daily regret audit helper** — Audits
+  all meeting JSON files in `meetings/` and writes `reports/daily_digest.md`.
+  Sections: day-end summary table (meetings reviewed, average waste score,
+  async candidates, high-waste count), top three priority regret targets sorted
+  by waste score, and a table of all meetings flagged as async candidates
+  (`could_be_email: true`). Intended for weekday 5 PM scheduling.
+
+- **`python/generate_weekly_entropy.py` — Weekly entropy summary helper** —
+  Audits all meeting files and writes `reports/weekly_entropy.md`. Focuses on
+  recurring meetings: cadence, waste score, necessity probability, and estimated
+  weekly person-hours lost (duration × attendees × weekly occurrences for
+  meetings scoring ≥ 61). Sections: overview table, recurring meeting breakdown,
+  pattern analysis (no-agenda, no-actions, could-be-email patterns in recurring
+  set), and remediation priority list. Intended for Friday 4 PM scheduling.
+
+- **`python/generate_preflight.py` — Morning preflight helper** — Audits all
+  meeting files and writes `reports/preflight_report.md`. Flags meetings as
+  async candidates when they meet two or more of: `could_be_email`, no agenda,
+  no action items, waste score ≥ 60. Sections: preflight summary table,
+  flagged meetings with their async signals listed, and cleared meetings with
+  fewer than two signals. Intended for weekday 7 AM scheduling.
+
+- **`scripts/run_daily_regret_audit.sh`** — Wrapper script for the daily
+  regret audit. Detects Python (`python` or `python3`), changes to repo root,
+  calls `generate_daily_digest.py`. Includes the cron entry as a header comment.
+  Exits non-zero if Python is not found.
+
+- **`scripts/run_weekly_entropy_summary.sh`** — Wrapper script for the weekly
+  entropy summary. Same structure as the daily script; calls
+  `generate_weekly_entropy.py`.
+
+- **`scripts/run_preflight_audit.sh`** — Wrapper script for the morning
+  preflight. Calls `generate_preflight.py`.
+
+- **`skills/` — curated Hermes skill scaffolds** — Human-authored SKILL.md
+  files for four capabilities:
+  - `skills/meeting_entropy_audit/SKILL.md` — Primary tool boundary: purpose,
+    full meeting JSON schema with required/optional breakdown, Python and CLI
+    invocation examples, guardrails (do not modify COBOL output, validate first,
+    check exit codes), and SOUL.md tone notes.
+  - `skills/async_alternative_recommender/SKILL.md` — Deterministic
+    recommendation lookup via `classify.py`; explains the bucket/hash selection
+    mechanism, when to use the skill standalone vs. relying on the full audit
+    result, and why the recommendation text is not LLM-generated.
+  - `skills/summary_report_writer/SKILL.md` — Batch summary skill covering all
+    three report types (summary, daily digest, weekly entropy); Python invocation
+    examples for each generator function; guardrail against adding LLM narrative
+    to fixed report copy.
+  - `skills/cobol_output_interpreter/SKILL.md` — Documents the raw two-line
+    COBOL output format, the six stdin values with expected types and ranges,
+    the invariant `necessity_prob = max(5, 100 - waste_score)`, and how to call
+    the binary directly for debugging.
+  - `skills/README.md` — Authorship and review policy: all skills are
+    human-authored, Hermes may propose but humans decide, explains why
+    autonomous skill generation is not allowed, and cross-references SOUL.md
+    behavioral directives with what each directive means for skill behavior.
+
+- **`docs/hermes_integration.md`** — Architecture overview (Hermes as adaptive
+  edge, Python/COBOL as stable core), both integration paths (in-process
+  `audit_meeting_data()` and out-of-process CLI), full JSON output example with
+  `--write-report` variant, exit code table, SOUL.md as persona contract with
+  directive explanations, example Hermes prompts, and what Hermes does not do.
+
+- **`docs/local_agent_setup.md`** — End-to-end local agent setup guide. Covers:
+  GnuCOBOL installation on macOS, Ubuntu/Debian, WSL, and native Windows;
+  Ollama setup (install, model pull, server start, recommended models); OpenRouter
+  configuration; Anthropic API key setup; `.env` / `example.env` workflow;
+  in-process Python tool registration example; out-of-process subprocess wrapper
+  example; SOUL.md system prompt excerpt for agent configuration; what is real
+  vs. mocked.
+
+- **`docs/scheduled_audits.md`** — Scheduling reference for all three workflows.
+  Covers the intent and output of each; manual verification commands; cron entry
+  syntax with full paths and log redirection; WSL-specific cron startup notes
+  including the `/etc/wsl.conf` `[boot]` command workaround; Windows Task
+  Scheduler via both PowerShell (`New-ScheduledTaskAction`, `Register-ScheduledTask`)
+  and GUI (step-by-step); and a reminder that the meeting files are mocked.
+
+- **`docs/skills.md`** — Skill catalog with one-paragraph description and
+  invocation example for each of the four skills; authorship policy summary;
+  SOUL.md conformance table mapping each directive to what it requires of skill
+  outputs.
+
+- **`tests/test_hermes_tool.py`** — 37 subprocess tests for the Hermes tool
+  boundary. Classes: `TestFileInput` (7 tests — exit 0, stdout is JSON, required
+  keys present, score bounds, title match, clean stderr), `TestStdinInput` (4
+  tests — same structural checks via `--stdin`), `TestErrorHandling` (9 tests —
+  no args, both sources, file not found exit 1, invalid JSON exit 2 for both
+  file and stdin), `TestMissingFields` (6 tests — missing title/duration/attendees
+  each exit 3, empty dict exit 3, error lists all required fields),
+  `TestInvalidFieldTypes` (8 tests — wrong-type title, string duration, null/string
+  attendees, wrong-type boolean fields parametrized, unknown recurrence),
+  `TestWriteReport` (3 tests — exit 0, `report_path` in output, file exists).
+  All 37 pass. Existing 59 tests in `test_audit.py` unaffected. Total: 96 tests.
+
+### Changed
+
+- **All generated reports now end with a two-line closing statement** —
+  `generate_report()` in `audit_meeting.py`, `generate_summary()` in
+  `audit_all_meetings.py`, and all three scheduled report generators
+  (`generate_daily_digest`, `generate_weekly_entropy`, `generate_preflight`)
+  now append the following two lines after the existing footer tagline:
+
+  ```
+  The meeting has been remembered.
+  This is not a compliment.
+  ```
+
+  This applies to all five report types: individual audit reports, the batch
+  summary, the daily digest, the weekly entropy summary, and the morning
+  preflight. The lines are separated from the preceding tagline by a blank line.
+
+- **`README.md` updated to v0.3.0-dev** — Current Status updated; Hermes
+  Integration section added (tool boundary, JSON output example, exit codes,
+  in-process API); SOUL.md persona contract section added; Scheduled Audits
+  section added (table of workflows, manual run commands); Skills section added
+  (skill catalog table); Testing section updated (96 tests, two suites);
+  Verification section added with all verification commands; Project Structure
+  tree updated to reflect all new files.
+
+---
+
 ## [0.2.0-dev] — 2026-05-15
 
 ### Added
