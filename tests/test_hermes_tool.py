@@ -277,6 +277,17 @@ class TestWriteReport:
         parsed = json.loads(result.stdout)
         assert "report_path" in parsed
 
+    def test_write_report_path_is_relative(self):
+        result = _run(
+            "meetings/weekly_alignment_sync.json",
+            "--write-report",
+        )
+        assert result.returncode == 0
+        parsed = json.loads(result.stdout)
+        assert not Path(parsed["report_path"]).is_absolute(), (
+            f"Expected a relative path, got: {parsed['report_path']!r}"
+        )
+
     def test_write_report_file_exists(self):
         assert not self._REPORT.exists(), "Stale report found before test ran — fixture failed"
         result = _run(
@@ -285,5 +296,5 @@ class TestWriteReport:
         )
         assert result.returncode == 0
         parsed = json.loads(result.stdout)
-        report_path = Path(parsed["report_path"])
+        report_path = _ROOT / parsed["report_path"]
         assert report_path.exists(), f"Report file not found: {report_path}"

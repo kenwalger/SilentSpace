@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from audit_meeting import audit_meeting_data, generate_report, save_report
+from audit_meeting import ROOT, audit_meeting_data, generate_report, save_report
 
 
 def _die(code: int, msg: str) -> NoReturn:
@@ -122,7 +122,7 @@ def main() -> None:
             result["recommendation"],
         )
         report_path = save_report(result["title"], report)
-        output["report_path"] = str(report_path)
+        output["report_path"] = report_path.relative_to(ROOT).as_posix()
 
     print(json.dumps(output, indent=2, ensure_ascii=False))
 

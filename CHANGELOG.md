@@ -19,6 +19,46 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.3-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/hermes_meeting_tool.py` — `report_path` was absolute** — The tool
+  returned the absolute system path from `save_report()` as the `report_path`
+  field in the JSON output (e.g. `C:\Users\kenal\silentspace-guardian\reports\
+  weekly_alignment_sync_report.md`). Documentation examples and agent consumers
+  expect a portable relative path. Fixed by importing `ROOT` from `audit_meeting`
+  and emitting `report_path.relative_to(ROOT).as_posix()` — consistently
+  forward-slashed and relative to the repo root on all platforms
+  (e.g. `reports/weekly_alignment_sync_report.md`). Where reports are written is
+  unchanged.
+
+- **`python/generate_preflight.py` — safe-list computed via dict equality** —
+  `safe = [r for r in results if r not in candidates]` used Python list
+  `__contains__`, which compares full nested dicts for equality on every
+  iteration. For large or subtly mutated result dicts this is fragile and
+  unclear. Fixed by computing `safe` directly and independently from the same
+  predicate used for `candidates`:
+  `safe = [r for r in results if not _is_async_candidate(r["meeting"], r)]`.
+  No dict equality, no object identity, no dependency between the two list
+  comprehensions. Output is identical for the mocked dataset.
+
+- **`skills/entropy_audit/SKILL.md` — escaped Markdown syntax** — The file
+  contained `\#` for its heading and `\-` for all five bullet items, rendering
+  as literal backslash-prefixed text on GitHub. Same export-artifact root cause
+  as `SOUL.md`. Fixed: `\#` → `#`, five `\-` → `-`. Wording unchanged.
+
+### Changed
+
+- **`tests/test_hermes_tool.py` — `TestWriteReport` updated for relative
+  `report_path`** — `test_write_report_file_exists` now resolves the relative
+  path returned by the tool against `_ROOT` before asserting the file exists
+  (`_ROOT / parsed["report_path"]`). Added `test_write_report_path_is_relative`
+  which asserts `Path(parsed["report_path"]).is_absolute()` is false, locking
+  in the documented output shape. Test count: 96 → 97.
+
+---
+
 ## [0.3.2-dev] — 2026-05-18
 
 ### Fixed

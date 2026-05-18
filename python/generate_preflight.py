@@ -44,11 +44,8 @@ def generate_preflight(results: list[dict]) -> str:
     day = datetime.now().strftime("%A")
     time_str = datetime.now().strftime("%H:%M")
 
-    candidates = [
-        r for r in results
-        if _is_async_candidate(r["meeting"], r)
-    ]
-    safe = [r for r in results if r not in candidates]
+    candidates = [r for r in results if _is_async_candidate(r["meeting"], r)]
+    safe = [r for r in results if not _is_async_candidate(r["meeting"], r)]
 
     candidate_rows = "\n".join(
         f"| {r['title']} | {r['waste_score']}/100 | "
