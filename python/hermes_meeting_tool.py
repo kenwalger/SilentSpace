@@ -21,6 +21,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -30,7 +31,7 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
 from audit_meeting import audit_meeting_data, generate_report, save_report
 
 
-def _die(code: int, msg: str) -> None:
+def _die(code: int, msg: str) -> NoReturn:
     print(f"ERROR: {msg}", file=sys.stderr)
     sys.exit(code)
 

@@ -19,6 +19,47 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.2-dev] — 2026-05-18
+
+### Fixed
+
+- **`SOUL.md` — escaped Markdown syntax** — The file contained literal
+  backslash-escaped Markdown syntax (`\#`, `\##`, `\-`) and HTML entities
+  (`&#x20;`) throughout, causing headings to render as plain text prefixed with
+  a backslash and list items to render as `\- item` rather than bullet points on
+  GitHub and any standard Markdown renderer. Root cause: the file was exported
+  from a rich-text tool that escaped Markdown metacharacters on output. Fixed by
+  rewriting the file with proper Markdown syntax: `\#` → `#` (top-level heading),
+  `\##` → `##` (second-level heading for "Behavioral Directives"), `\-` → `-`
+  (all bullet list items), and `&#x20;` → removed (these were indentation padding
+  before line-wrapped list continuations; each affected bullet is now a single
+  unbroken line). All wording is preserved exactly. SOUL.md now renders cleanly
+  as the authoritative Guardian persona and behavior contract.
+
+- **`python/hermes_meeting_tool.py` — `_die()` annotated `-> None` instead of
+  `-> NoReturn`** — `_die()` unconditionally calls `sys.exit()` and therefore
+  never returns. Annotating it `-> None` told type checkers it could return
+  normally, causing them to flag implicit `None` returns in callers like
+  `_load_file()` and `_load_stdin()` — functions whose `except` branches call
+  `_die()` and then fall through with no explicit return. Fixed by importing
+  `NoReturn` from `typing` and changing the annotation to `-> NoReturn`. No
+  runtime behavior changes.
+
+- **`tests/test_hermes_tool.py` — `TestWriteReport` not isolated from
+  `reports/`** — The three `--write-report` tests all wrote to
+  `reports/weekly_alignment_sync_report.md` in the real repository directory.
+  `test_write_report_file_exists` could silently pass because a stale file from
+  a prior run was already present before the test invoked the tool. Added an
+  `autouse` pytest fixture `_clean_report` to `TestWriteReport` that deletes the
+  known report path before each test (preventing stale-file false positives) and
+  again after (leaving `reports/` clean between runs). Also added an explicit
+  pre-condition assertion to `test_write_report_file_exists`: the test now
+  asserts the file does not exist before running the tool, making fixture failure
+  immediately diagnosable. The underlying behavior — that the tool writes to
+  `reports/` — is unchanged; only the test harness is isolated.
+
+---
+
 ## [0.3.1-dev] — 2026-05-18
 
 ### Fixed

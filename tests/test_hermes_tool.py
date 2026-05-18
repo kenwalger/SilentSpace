@@ -250,6 +250,17 @@ class TestInvalidFieldTypes:
 # ── --write-report ─────────────────────────────────────────────────────────────
 
 class TestWriteReport:
+    # The tool derives this path from the meeting title; it is fixed and known.
+    _REPORT = _ROOT / "reports" / "weekly_alignment_sync_report.md"
+
+    @pytest.fixture(autouse=True)
+    def _clean_report(self):
+        # Remove before: test_write_report_file_exists cannot pass from a stale file.
+        # Remove after: keep reports/ clean between runs.
+        self._REPORT.unlink(missing_ok=True)
+        yield
+        self._REPORT.unlink(missing_ok=True)
+
     def test_write_report_exits_zero(self):
         result = _run(
             "meetings/weekly_alignment_sync.json",
@@ -267,6 +278,7 @@ class TestWriteReport:
         assert "report_path" in parsed
 
     def test_write_report_file_exists(self):
+        assert not self._REPORT.exists(), "Stale report found before test ran — fixture failed"
         result = _run(
             "meetings/weekly_alignment_sync.json",
             "--write-report",
