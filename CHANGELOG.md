@@ -19,6 +19,146 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.0-dev] — 2026-05-18
+
+### Added
+
+- **`python/hermes_meeting_tool.py` — Hermes agent tool boundary** — Structured
+  CLI interface for agent consumption. Accepts a meeting JSON from a file path
+  argument or `--stdin`. Calls `audit_meeting_data()` from `audit_meeting.py`
+  without duplicating any scoring logic. Outputs a structured JSON result to
+  stdout containing `title`, `waste_score`, `necessity_prob`, `classification`,
+  `recommendation`, and the original `meeting` dict. Supports `--write-report`
+  to additionally generate a Markdown report to `reports/` using existing
+  `generate_report()` and `save_report()` logic; when active, the output JSON
+  includes a `report_path` key. Error handling: file not found exits 1, JSON
+  parse error exits 2, meeting validation error exits 3. All errors are printed
+  as `ERROR: <message>` to stderr with no Python traceback. Mutually exclusive
+  source arguments (`file` / `--stdin`) are validated with a clear argparse
+  error if neither or both are provided.
+
+- **`python/generate_daily_digest.py` — Daily regret audit helper** — Audits
+  all meeting JSON files in `meetings/` and writes `reports/daily_digest.md`.
+  Sections: day-end summary table (meetings reviewed, average waste score,
+  async candidates, high-waste count), top three priority regret targets sorted
+  by waste score, and a table of all meetings flagged as async candidates
+  (`could_be_email: true`). Intended for weekday 5 PM scheduling.
+
+- **`python/generate_weekly_entropy.py` — Weekly entropy summary helper** —
+  Audits all meeting files and writes `reports/weekly_entropy.md`. Focuses on
+  recurring meetings: cadence, waste score, necessity probability, and estimated
+  weekly person-hours lost (duration × attendees × weekly occurrences for
+  meetings scoring ≥ 61). Sections: overview table, recurring meeting breakdown,
+  pattern analysis (no-agenda, no-actions, could-be-email patterns in recurring
+  set), and remediation priority list. Intended for Friday 4 PM scheduling.
+
+- **`python/generate_preflight.py` — Morning preflight helper** — Audits all
+  meeting files and writes `reports/preflight_report.md`. Flags meetings as
+  async candidates when they meet two or more of: `could_be_email`, no agenda,
+  no action items, waste score ≥ 60. Sections: preflight summary table,
+  flagged meetings with their async signals listed, and cleared meetings with
+  fewer than two signals. Intended for weekday 7 AM scheduling.
+
+- **`scripts/run_daily_regret_audit.sh`** — Wrapper script for the daily
+  regret audit. Detects Python (`python` or `python3`), changes to repo root,
+  calls `generate_daily_digest.py`. Includes the cron entry as a header comment.
+  Exits non-zero if Python is not found.
+
+- **`scripts/run_weekly_entropy_summary.sh`** — Wrapper script for the weekly
+  entropy summary. Same structure as the daily script; calls
+  `generate_weekly_entropy.py`.
+
+- **`scripts/run_preflight_audit.sh`** — Wrapper script for the morning
+  preflight. Calls `generate_preflight.py`.
+
+- **`skills/` — curated Hermes skill scaffolds** — Human-authored SKILL.md
+  files for four capabilities:
+  - `skills/meeting_entropy_audit/SKILL.md` — Primary tool boundary: purpose,
+    full meeting JSON schema with required/optional breakdown, Python and CLI
+    invocation examples, guardrails (do not modify COBOL output, validate first,
+    check exit codes), and SOUL.md tone notes.
+  - `skills/async_alternative_recommender/SKILL.md` — Deterministic
+    recommendation lookup via `classify.py`; explains the bucket/hash selection
+    mechanism, when to use the skill standalone vs. relying on the full audit
+    result, and why the recommendation text is not LLM-generated.
+  - `skills/summary_report_writer/SKILL.md` — Batch summary skill covering all
+    three report types (summary, daily digest, weekly entropy); Python invocation
+    examples for each generator function; guardrail against adding LLM narrative
+    to fixed report copy.
+  - `skills/cobol_output_interpreter/SKILL.md` — Documents the raw two-line
+    COBOL output format, the six stdin values with expected types and ranges,
+    the invariant `necessity_prob = max(5, 100 - waste_score)`, and how to call
+    the binary directly for debugging.
+  - `skills/README.md` — Authorship and review policy: all skills are
+    human-authored, Hermes may propose but humans decide, explains why
+    autonomous skill generation is not allowed, and cross-references SOUL.md
+    behavioral directives with what each directive means for skill behavior.
+
+- **`docs/hermes_integration.md`** — Architecture overview (Hermes as adaptive
+  edge, Python/COBOL as stable core), both integration paths (in-process
+  `audit_meeting_data()` and out-of-process CLI), full JSON output example with
+  `--write-report` variant, exit code table, SOUL.md as persona contract with
+  directive explanations, example Hermes prompts, and what Hermes does not do.
+
+- **`docs/local_agent_setup.md`** — End-to-end local agent setup guide. Covers:
+  GnuCOBOL installation on macOS, Ubuntu/Debian, WSL, and native Windows;
+  Ollama setup (install, model pull, server start, recommended models); OpenRouter
+  configuration; Anthropic API key setup; `.env` / `example.env` workflow;
+  in-process Python tool registration example; out-of-process subprocess wrapper
+  example; SOUL.md system prompt excerpt for agent configuration; what is real
+  vs. mocked.
+
+- **`docs/scheduled_audits.md`** — Scheduling reference for all three workflows.
+  Covers the intent and output of each; manual verification commands; cron entry
+  syntax with full paths and log redirection; WSL-specific cron startup notes
+  including the `/etc/wsl.conf` `[boot]` command workaround; Windows Task
+  Scheduler via both PowerShell (`New-ScheduledTaskAction`, `Register-ScheduledTask`)
+  and GUI (step-by-step); and a reminder that the meeting files are mocked.
+
+- **`docs/skills.md`** — Skill catalog with one-paragraph description and
+  invocation example for each of the four skills; authorship policy summary;
+  SOUL.md conformance table mapping each directive to what it requires of skill
+  outputs.
+
+- **`tests/test_hermes_tool.py`** — 37 subprocess tests for the Hermes tool
+  boundary. Classes: `TestFileInput` (7 tests — exit 0, stdout is JSON, required
+  keys present, score bounds, title match, clean stderr), `TestStdinInput` (4
+  tests — same structural checks via `--stdin`), `TestErrorHandling` (9 tests —
+  no args, both sources, file not found exit 1, invalid JSON exit 2 for both
+  file and stdin), `TestMissingFields` (6 tests — missing title/duration/attendees
+  each exit 3, empty dict exit 3, error lists all required fields),
+  `TestInvalidFieldTypes` (8 tests — wrong-type title, string duration, null/string
+  attendees, wrong-type boolean fields parametrized, unknown recurrence),
+  `TestWriteReport` (3 tests — exit 0, `report_path` in output, file exists).
+  All 37 pass. Existing 59 tests in `test_audit.py` unaffected. Total: 96 tests.
+
+### Changed
+
+- **All generated reports now end with a two-line closing statement** —
+  `generate_report()` in `audit_meeting.py`, `generate_summary()` in
+  `audit_all_meetings.py`, and all three scheduled report generators
+  (`generate_daily_digest`, `generate_weekly_entropy`, `generate_preflight`)
+  now append the following two lines after the existing footer tagline:
+
+  ```
+  The meeting has been remembered.
+  This is not a compliment.
+  ```
+
+  This applies to all five report types: individual audit reports, the batch
+  summary, the daily digest, the weekly entropy summary, and the morning
+  preflight. The lines are separated from the preceding tagline by a blank line.
+
+- **`README.md` updated to v0.3.0-dev** — Current Status updated; Hermes
+  Integration section added (tool boundary, JSON output example, exit codes,
+  in-process API); SOUL.md persona contract section added; Scheduled Audits
+  section added (table of workflows, manual run commands); Skills section added
+  (skill catalog table); Testing section updated (96 tests, two suites);
+  Verification section added with all verification commands; Project Structure
+  tree updated to reflect all new files.
+
+---
+
 ## [0.2.0-dev] — 2026-05-15
 
 ### Added
