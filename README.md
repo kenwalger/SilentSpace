@@ -16,7 +16,7 @@ for deterministic scoring, a Python orchestration layer for classification and r
 Hermes as the adaptive agent edge for natural language interaction and scheduled workflows.
 
 
-![Hermes In Action(img/hermes_audit.png)
+![Hermes In Action](img/hermes_audit.png)
 > Hermes autonomously auditing a recurring cross-functional alignment meeting and generating a markdown entropy report.
 
 ---
