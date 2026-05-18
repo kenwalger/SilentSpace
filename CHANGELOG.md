@@ -19,6 +19,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.7-dev] — 2026-05-18
+
+### Changed
+
+- **Report version string bumped from `v0.1.0` to `v0.3.0`** — The closing
+  line of individual meeting reports (`audit_meeting.py`) and both footers in
+  the organizational entropy report (`audit_all_meetings.py`) still referenced
+  `v0.1.0`. Updated all three occurrences to `v0.3.0` to match the project's
+  current development version. No scoring, output structure, or behavior
+  changed.
+
+---
+
 ## [0.3.6-dev] — 2026-05-18
 
 ### Fixed

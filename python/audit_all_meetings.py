@@ -161,7 +161,7 @@ def generate_summary(results: list[dict]) -> str:
     return f"""# Organizational Entropy Report
 
 **Period Assessed:** {timestamp}
-**Prepared by:** SilentSpace Guardian — Calendar Governance Module v0.1.0
+**Prepared by:** SilentSpace Guardian — Calendar Governance Module v0.3.0
 **Distribution:** Internal Use Only
 
 ---
@@ -228,7 +228,7 @@ It is not, at this time, considered an anomaly.
 
 ---
 
-*SilentSpace Guardian v0.1.0 — Issued automatically. No meeting was held to review this report.*
+*SilentSpace Guardian v0.3.0 — Issued automatically. No meeting was held to review this report.*
 
 The meeting has been remembered.
 This is not a compliment.

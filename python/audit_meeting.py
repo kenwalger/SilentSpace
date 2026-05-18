@@ -290,7 +290,7 @@ def generate_report(
 
 ---
 
-*SilentSpace Guardian v0.1.0 — Protecting calendars, one audit at a time.*
+*SilentSpace Guardian v0.3.0 — Protecting calendars, one audit at a time.*
 
 The meeting has been remembered.
 This is not a compliment.
