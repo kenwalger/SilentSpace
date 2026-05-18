@@ -19,6 +19,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.6-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/generate_daily_digest.py`, `generate_preflight.py`,
+  `generate_weekly_entropy.py` — `load_meeting()` outside try block** — The
+  `[0.3.5-dev]` fix wrapped only `audit_meeting_data()` in `try/except
+  ValueError`. `load_meeting()` was still called before the try block, so a
+  malformed JSON file raised `json.JSONDecodeError` (a subclass of `ValueError`)
+  before the handler could catch it, aborting the entire generator run with a
+  raw traceback. Fixed in all three generators by moving `load_meeting()` inside
+  the try block and widening the exception tuple to `(ValueError, OSError)` so
+  the handler also covers file-level I/O errors (permissions, disappearing
+  files). One bad file now emits a `WARNING` to stderr and continues; valid
+  files in the same run are unaffected.
+
+- **`tests/test_generators.py` — new test file** — Added six parametrized tests
+  across all three generators: two test functions × three generator scripts. A
+  `bad_meeting_file` fixture writes a malformed JSON file to `meetings/` before
+  each test and removes it after. Tests assert: exit code 0, `WARNING` present
+  in stderr, the bad filename present in the warning, no `Traceback` in stderr.
+
+---
+
 ## [0.3.5-dev] — 2026-05-18
 
 ### Fixed

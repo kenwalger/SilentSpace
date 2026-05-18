@@ -168,10 +168,10 @@ def main() -> None:
 
     results = []
     for path in meeting_files:
-        meeting = load_meeting(str(path))
         try:
+            meeting = load_meeting(str(path))
             result = audit_meeting_data(meeting)
-        except ValueError as exc:
+        except (ValueError, OSError) as exc:
             print(f"WARNING: Skipping {path.name}: {exc}", file=sys.stderr)
             continue
         results.append(result)
