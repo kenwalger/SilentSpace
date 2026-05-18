@@ -19,6 +19,38 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.4-dev] — 2026-05-18
+
+### Fixed
+
+- **`python/hermes_meeting_tool.py` — `--write-report` block unhandled
+  `OSError`** — `generate_report()` and `save_report()` were called without
+  any exception handler. If `reports/` was not writable (permission denied,
+  read-only filesystem, full disk, or any other I/O condition), `save_report()`'s
+  `Path.write_text()` call raised a raw `OSError` that propagated as an
+  unhandled exception, printing a full Python traceback to stderr and exiting
+  with code 1 by default — violating the CLI contract that all errors produce
+  `ERROR: <message>` on stderr with a documented exit code. Fixed by wrapping
+  the entire `--write-report` block in `try/except OSError` and routing through
+  `_die(1, f"Failed to write report: {exc}")`. The `output["report_path"]`
+  assignment remains outside the try block (pure Python, cannot raise). On a
+  genuine write failure the tool now exits 1 and prints a clean, traceback-free
+  error message.
+
+- **`tests/test_hermes_tool.py` — no coverage for `--write-report` I/O
+  failure** — Added `TestWriteReportIOError` class with two tests:
+  `test_io_error_exits_nonzero` and `test_io_error_prints_clean_error`. The
+  fixture `_block_report_path` creates a **directory** at the exact path
+  `save_report()` would write to (`reports/hermes_io_error_fixture_report.md`,
+  derived deterministically from the fixture meeting title). Attempting
+  `Path.write_text()` on a directory raises `IsADirectoryError` on Linux/macOS
+  and `PermissionError` on Windows — both `OSError` subclasses — triggering the
+  new handler on all platforms. The fixture removes the directory after each
+  test. This approach avoids making `reports/` itself read-only (which could
+  corrupt the test environment if cleanup failed). Test count: 97 → 99.
+
+---
+
 ## [0.3.3-dev] — 2026-05-18
 
 ### Fixed

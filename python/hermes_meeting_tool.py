@@ -114,14 +114,17 @@ def main() -> None:
     }
 
     if args.write_report:
-        report = generate_report(
-            result["meeting"],
-            result["waste_score"],
-            result["necessity_prob"],
-            result["classification"],
-            result["recommendation"],
-        )
-        report_path = save_report(result["title"], report)
+        try:
+            report = generate_report(
+                result["meeting"],
+                result["waste_score"],
+                result["necessity_prob"],
+                result["classification"],
+                result["recommendation"],
+            )
+            report_path = save_report(result["title"], report)
+        except OSError as exc:
+            _die(1, f"Failed to write report: {exc}")
         output["report_path"] = report_path.relative_to(ROOT).as_posix()
 
     print(json.dumps(output, indent=2, ensure_ascii=False))

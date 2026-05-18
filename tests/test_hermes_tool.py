@@ -298,3 +298,39 @@ class TestWriteReport:
         parsed = json.loads(result.stdout)
         report_path = _ROOT / parsed["report_path"]
         assert report_path.exists(), f"Report file not found: {report_path}"
+
+
+# ── --write-report I/O failure ─────────────────────────────────────────────────
+
+class TestWriteReportIOError:
+    """Verify that a report write failure produces a clean ERROR: message, not a traceback."""
+
+    _MEETING = {
+        "title": "Hermes IO Error Fixture",
+        "duration_minutes": 30,
+        "attendees": ["Alice"],
+    }
+    # Slug is deterministic from the title above; confirmed by audit_meeting.save_report().
+    _COLLISION = _ROOT / "reports" / "hermes_io_error_fixture_report.md"
+
+    @pytest.fixture(autouse=True)
+    def _block_report_path(self):
+        # A directory at the expected report path makes write_text() raise OSError
+        # on all platforms (IsADirectoryError on Linux/macOS, PermissionError on Windows).
+        self._COLLISION.mkdir(parents=True, exist_ok=True)
+        yield
+        self._COLLISION.rmdir()
+
+    def _meeting_file(self, tmp_path: Path) -> str:
+        f = tmp_path / "m.json"
+        f.write_text(json.dumps(self._MEETING), encoding="utf-8")
+        return str(f)
+
+    def test_io_error_exits_nonzero(self, tmp_path):
+        result = _run(self._meeting_file(tmp_path), "--write-report")
+        assert result.returncode != 0
+
+    def test_io_error_prints_clean_error(self, tmp_path):
+        result = _run(self._meeting_file(tmp_path), "--write-report")
+        assert "ERROR" in result.stderr
+        assert "Traceback" not in result.stderr
