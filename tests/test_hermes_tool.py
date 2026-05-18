@@ -42,6 +42,7 @@ def _run(*args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
         capture_output=True,
         text=True,
         cwd=_ROOT,
+        timeout=30,
     )
 
 

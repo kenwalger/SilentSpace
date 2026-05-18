@@ -168,9 +168,17 @@ def main() -> None:
 
     results = []
     for path in meeting_files:
-        meeting = load_meeting(str(path))
-        result = audit_meeting_data(meeting)
+        try:
+            meeting = load_meeting(str(path))
+            result = audit_meeting_data(meeting)
+        except (ValueError, OSError) as exc:
+            print(f"WARNING: Skipping {path.name}: {exc}", file=sys.stderr)
+            continue
         results.append(result)
+
+    if not results:
+        print("ERROR: No valid meetings to process.", file=sys.stderr)
+        sys.exit(1)
 
     report = generate_weekly_entropy(results)
     REPORTS_DIR.mkdir(exist_ok=True)
