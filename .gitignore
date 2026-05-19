@@ -25,6 +25,7 @@ reports/*.md
 !reports/summary_report.md
 !reports/weekly_entropy.md
 !reports/weekly_alignment_sync_report.md
+!reports/blog_post_excerpt.md
 
 # ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
