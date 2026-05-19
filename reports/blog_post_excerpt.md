@@ -1,5 +1,5 @@
 # Organizational Entropy Report
-### Excerpt prepared for external organizational review.
+> Excerpt prepared for external organizational review.
 
 **Period Assessed:** 2026-05-18
 **Prepared by:** SilentSpace Guardian — Calendar Governance Module v0.3.0
