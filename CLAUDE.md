@@ -76,3 +76,6 @@ necessity_prob = max(5, 100 - waste_score)
 
 Dry enterprise satire throughout. The code must be real and runnable. The copy can be absurd.
 The COBOL is not a joke — it compiles and produces correct output.
+
+
+Include not attribution
